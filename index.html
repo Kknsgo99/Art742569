@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบงานศิลปหัตถกรรมนักเรียน ครั้งที่ 74</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    .nav-item-active { background-color: rgba(99, 102, 241, 0.18); color: #a5b4fc; border-left: 4px solid #6366f1; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .skeleton { background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 37%,#f1f5f9 63%); background-size: 400% 100%; animation: skeleton-loading 1.4s ease infinite; }
+    @keyframes skeleton-loading { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+    @media print {
+      @page { size: A4 landscape; margin: 0; }
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 0; margin: 0; }
+      .no-print { display: none !important; }
+      .cert-page { page-break-after: always; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+    }
+  </style>
+</head>
+<body class="h-full font-['Sarabun'] antialiased text-slate-800">
+
+  <!-- CONFIG MODAL FOR BACKEND URL -->
+  <div id="configApiModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full inline-flex items-center justify-center mb-3 text-xl">
+          <i class="fa-solid fa-link"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">เชื่อมต่อ Backend (Apps Script)</h3>
+        <p class="text-xs text-slate-500 mt-1">กรุณาระบุ Web App URL ที่ได้ทำการ Deploy จาก Google Apps Script</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Web App Exec URL</label>
+          <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button onclick="App.saveBackendUrl()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl transition">บันทึก URL การเชื่อมต่อ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div id="globalLoading" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center gap-3">
+    <i class="fa-solid fa-trophy text-5xl text-amber-500 animate-bounce"></i>
+    <p class="text-slate-500 text-sm font-medium">กำลังเตรียมระบบ...</p>
+  </div>
+
+  <!-- LOGIN VIEW -->
+  <div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-slate-100 relative">
+      <button onclick="App.openConfigModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm" title="ตั้งค่าการเชื่อมต่อ API">
+        <i class="fa-solid fa-gear text-lg"></i>
+      </button>
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4 shadow-inner">
+          <i class="fa-solid fa-award text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">ศิลปหัตถกรรมนักเรียน ครั้งที่ 74</h2>
+        <p class="text-sm text-slate-500 mt-1">กลุ่มโรงเรียนโนนสมบูรณ์นาสวรรค์คำนาดี</p>
+        <p class="text-xs text-slate-400 mt-1">ปีการศึกษา 2569 · วันที่ 3-4 กันยายน 2569</p>
+      </div>
+
+      <form id="loginForm" onsubmit="App.handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+        </div>
+        <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          <span>เข้าสู่ระบบ</span>
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        </button>
+        <button type="button" onclick="Views.showPublicResults()" class="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-trophy"></i> ดูประกาศผลการแข่งขัน (สาธารณะ)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PUBLIC (NO-LOGIN) RESULTS VIEW -->
+  <div id="publicView" class="hidden min-h-screen bg-slate-50">
+    <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+        <span class="font-bold text-base">ประกาศผลการแข่งขัน ครั้งที่ 74</span>
+      </div>
+      <button onclick="App.showLoginView()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> กลับหน้าเข้าสู่ระบบ
+      </button>
+    </header>
+    <section id="publicContent" class="p-4 md:p-6"></section>
+  </div>
+
+  <!-- MAIN APP LAYOUT -->
+  <div id="appLayout" class="hidden min-h-screen flex flex-col md:flex-row">
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between md:h-screen md:sticky md:top-0">
+      <div class="overflow-y-auto">
+        <div class="p-5 flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+            <span class="font-bold text-white text-base">งานศิลปหัตถกรรมฯ<br><span class="text-xs font-normal text-slate-400">ครั้งที่ 74 (ปี 2569)</span></span>
+          </div>
+        </div>
+        <div class="p-3">
+          <div class="relative">
+            <input type="text" id="globalSearchInput" placeholder="ค้นหา (นักเรียน, โรงเรียน...)"
+              onkeydown="if(event.key==='Enter') Views.doGlobalSearch()"
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          </div>
+        </div>
+        <nav class="p-3 space-y-1" id="sidebarMenu"></nav>
+      </div>
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div class="truncate">
+          <p id="navUserDisplayName" class="text-sm font-semibold text-white truncate">-</p>
+          <p id="navUserRole" class="text-xs text-indigo-400 truncate">-</p>
+        </div>
+        <button onclick="App.handleLogout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg" title="ออกจากระบบ">
+          <i class="fa-solid fa-power-off"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
+      <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+        <h1 id="pageTitle" class="text-xl font-bold text-slate-800">แผงควบคุม</h1>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ระบบออนไลน์
+        </span>
+      </header>
+      <section id="mainContent" class="p-4 md:p-6 flex-1"></section>
+    </main>
+  </div>
+
+  <!-- MODAL CONTAINER -->
+  <div id="appModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 no-print">
+        <h3 id="modalTitle" class="text-lg font-bold text-slate-800">รายละเอียด</h3>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" id="modalPrintBtn" class="hidden px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold">
+            <i class="fa-solid fa-print"></i> พิมพ์ / PDF
+          </button>
+          <button onclick="Components.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+      </div>
+      <div id="modalBody" class="p-6 overflow-y-auto flex-1"></div>
+      <div id="printArea" class="hidden"></div>
+    </div>
+  </div>
+
+  <script>
+/**
+ * SECURITY HELPER
+ */
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+/**
+ * CORE APPLICATION STATE & API BRIDGE FOR GITHUB PAGES
+ */
+const AppState = {
+  token: localStorage.getItem('ART74_TOKEN') || null,
+  user: JSON.parse(localStorage.getItem('ART74_USER') || 'null'),
+  apiUrl: localStorage.getItem('ART74_API_URL') || '',
+  currentView: 'dashboard'
+};
+
+const API = {
+  async call(action, payload = {}) {
+    if (!AppState.apiUrl) {
+      App.openConfigModal();
+      throw new Error('กรุณาตั้งค่า Web App URL ของ Apps Script ก่อนใช้งาน');
+    }
+
+    const requestData = { action, token: AppState.token, payload };
+
+    try {
+      // POST Request ข้าม Origin บน GitHub Pages ผ่าน Google Apps Script Web App
+      const response = await fetch(AppState.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(requestData)
+      });
+
+      const res = await response.json();
+
+      if (res && res.success) {
+        return res.data;
+      } else {
+        const err = res && res.error;
+        const msg = (err && err.details) ? err.details
+          : (err && err.message) ? err.message
+          : (res && res.message) ? res.message
+          : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
+
+        if (err && err.code === 'UNAUTHORIZED') {
+          App.forceLogout('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        } else {
+          Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+        }
+        throw new Error(msg);
+      }
+    } catch (e) {
+      if (e.message.includes('Failed to fetch')) {
+        Swal.fire('ข้อผิดพลาดเครือข่าย', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ตรวจสอบ URL หรือการเผยแพร่ Web App', 'error');
+      }
+      throw e;
+    }
+  }
+};
+
+/**
+ * MAIN APP CONTROLLER
+ */
+const App = {
+  async init() {
+    document.getElementById('globalLoading').classList.remove('hidden');
+    
+    if (!AppState.apiUrl) {
+      this.openConfigModal();
+      document.getElementById('globalLoading').classList.add('hidden');
+      this.showLoginView();
+      return;
+    }
+
+    if (AppState.token) {
+      try {
+        const user = await API.call('verifySession');
+        AppState.user = user;
+        localStorage.setItem('ART74_USER', JSON.stringify(user));
+        this.showAppLayout();
+        this.navigate('dashboard');
+      } catch (e) {
+        this.showLoginView();
+      }
+    } else {
+      this.showLoginView();
+    }
+    document.getElementById('globalLoading').classList.add('hidden');
+  },
+
+  openConfigModal() {
+    document.getElementById('backendUrlInput').value = AppState.apiUrl;
+    document.getElementById('configApiModal').classList.remove('hidden');
+  },
+
+  saveBackendUrl() {
+    const url = document.getElementById('backendUrlInput').value.trim();
+    if (!url || !url.startsWith('https://script.google.com/')) {
+      Swal.fire('ข้อผิดพลาด', 'กรุณาระบุ Web App URL ของ Apps Script ให้ถูกต้อง', 'error');
+      return;
+    }
+    AppState.apiUrl = url;
+    localStorage.setItem('ART74_API_URL', url);
+    document.getElementById('configApiModal').classList.add('hidden');
+    Swal.fire('สำเร็จ', 'บันทึกการเชื่อมต่อเรียบร้อยแล้ว', 'success');
+    this.init();
+  },
+
+  forceLogout(message) {
+    AppState.token = null; AppState.user = null;
+    localStorage.removeItem('ART74_TOKEN'); localStorage.removeItem('ART74_USER');
+    this.showLoginView();
+    if (message) Swal.fire('แจ้งเตือน', message, 'warning');
+  },
+
+  showLoginView() {
+    document.getElementById('loginView').classList.remove('hidden');
+    document.getElementById('publicView').classList.add('hidden');
+    document.getElementById('appLayout').classList.add('hidden');
+  },
+
+  showAppLayout() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('publicView').classList.add('hidden');
+    document.getElementById('appLayout').classList.remove('hidden');
+    document.getElementById('navUserDisplayName').textContent = AppState.user.displayName;
+    document.getElementById('navUserRole').textContent = this.getRoleBadgeText(AppState.user.role);
+    this.renderSidebar();
+  },
+
+  getRoleBadgeText(role) {
+    switch (role) {
+      case 'SUPER_ADMIN': return 'ผู้ดูแลระบบสูงสุด';
+      case 'ADMIN': return 'ผู้ดูแลระบบ';
+      case 'COMMITTEE': return 'กรรมการตัดสิน';
+      case 'SCHOOL': return 'ตัวแทนโรงเรียน';
+      case 'VIEWER': return 'ผู้เยี่ยมชม';
+      default: return role;
+    }
+  },
+
+  renderSidebar() {
+    const role = AppState.user.role;
+    const isAdmin = (role === 'SUPER_ADMIN' || role === 'ADMIN');
+    const item = (view, icon, label) =>
+      `<a href="#" onclick="App.navigate('${view}')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 transition" id="nav-${view}">
+        <i class="fa-solid ${icon} w-5 text-center"></i> ${label}
+      </a>`;
+    const groupLabel = (label) => `<p class="px-4 pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">${label}</p>`;
+
+    let menuHtml = item('dashboard', 'fa-chart-pie', 'แผงควบคุม');
+    menuHtml += item('registrations', 'fa-clipboard-list', 'ลงทะเบียนแข่งขัน');
+    menuHtml += item('publicResults', 'fa-trophy', 'ประกาศผลการแข่งขัน');
+
+    if (isAdmin || role === 'COMMITTEE') {
+      menuHtml += groupLabel('การแข่งขัน');
+      menuHtml += item('scoring', 'fa-star', 'บันทึกคะแนน');
+      menuHtml += item('results', 'fa-medal', 'ประมวลผล/ประกาศผล');
+      menuHtml += item('schedules', 'fa-calendar-days', 'ตารางการแข่งขัน');
+    }
+
+    if (isAdmin) {
+      menuHtml += groupLabel('บริหารจัดการ');
+      menuHtml += item('schools', 'fa-school', 'จัดการโรงเรียน');
+      menuHtml += item('activities', 'fa-list-check', 'รายการแข่งขัน');
+      menuHtml += item('judges', 'fa-user-tie', 'กรรมการตัดสิน');
+    }
+
+    if (role === 'SUPER_ADMIN') {
+      menuHtml += item('users', 'fa-users-gear', 'ผู้ใช้งานระบบ');
+      menuHtml += item('settings', 'fa-gears', 'ตั้งค่าระบบ');
+      menuHtml += item('auditlog', 'fa-file-shield', 'ประวัติการใช้งาน');
+    }
+
+    menuHtml += groupLabel('เกียรติบัตร');
+    menuHtml += item('certVerify', 'fa-qrcode', 'ตรวจสอบเกียรติบัตร');
+
+    document.getElementById('sidebarMenu').innerHTML = menuHtml;
+  },
+
+  navigate(viewName) {
+    AppState.currentView = viewName;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-item-active'));
+    const activeNav = document.getElementById(`nav-${viewName}`);
+    if (activeNav) activeNav.classList.add('nav-item-active');
+
+    const routes = {
+      dashboard: Views.renderDashboard,
+      registrations: Views.renderRegistrations,
+      scoring: Views.renderScoring,
+      schools: Views.renderSchools,
+      activities: Views.renderActivities,
+      judges: Views.renderJudges,
+      schedules: Views.renderSchedules,
+      results: Views.renderResultsAdmin,
+      publicResults: Views.renderPublicResultsPage,
+      users: Views.renderUsers,
+      settings: Views.renderSettings,
+      auditlog: Views.renderAuditLog,
+      certVerify: Views.renderCertVerify
+    };
+
+    if (typeof routes[viewName] === 'function') {
+      routes[viewName].call(Views);
+    } else {
+      document.getElementById('pageTitle').textContent = 'ไม่พบหน้านี้';
+      document.getElementById('mainContent').innerHTML = Components.emptyState('หน้านี้ยังไม่พร้อมใช้งาน', 'fa-triangle-exclamation');
+    }
+  },
+
+  async handleLogin(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnLoginSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังตรวจสอบ...';
+
+    try {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const res = await API.call('login', { username, password });
+      AppState.token = res.token;
+      AppState.user = res.user;
+      localStorage.setItem('ART74_TOKEN', res.token);
+      localStorage.setItem('ART74_USER', JSON.stringify(res.user));
+
+      Components.toast('success', 'เข้าสู่ระบบสำเร็จ');
+      this.showAppLayout();
+      this.navigate('dashboard');
+    } catch (err) {
+      // Error handled in API.call
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>';
+    }
+  },
+
+  async handleLogout() {
+    const result = await Swal.fire({
+      title: 'ยืนยันการออกจากระบบ?', icon: 'question', showCancelButton: true,
+      confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก'
+    });
+    if (result.isConfirmed) {
+      try { await API.call('logout'); } catch (e) {}
+      AppState.token = null; AppState.user = null;
+      localStorage.removeItem('ART74_TOKEN'); localStorage.removeItem('ART74_USER');
+      this.showLoginView();
+    }
+  }
+};
+
+/**
+ * REUSABLE UI COMPONENTS
+ */
+const Components = {
+  loadingSpinner() {
+    return `<div class="flex flex-col items-center justify-center p-12 text-slate-400">
+      <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3 text-indigo-600"></i>
+      <p class="text-sm font-medium">กำลังโหลดข้อมูล...</p>
+    </div>`;
+  },
+
+  emptyState(text, icon = 'fa-inbox') {
+    return `<div class="flex flex-col items-center justify-center p-12 text-slate-400">
+      <i class="fa-solid ${escapeHtml(icon)} text-5xl mb-3 text-slate-300"></i>
+      <p class="text-sm font-medium">${escapeHtml(text)}</p>
+    </div>`;
+  },
+
+  statusBadge(status) {
+    const map = {
+      DRAFT: ['bg-slate-100 text-slate-600', 'แบบร่าง'],
+      SUBMITTED: ['bg-blue-100 text-blue-700', 'ส่งใบสมัครแล้ว'],
+      APPROVED: ['bg-emerald-100 text-emerald-700', 'อนุมัติแล้ว'],
+      REJECTED: ['bg-red-100 text-red-700', 'ไม่อนุมัติ'],
+      CANCELLED: ['bg-slate-200 text-slate-500 line-through', 'ยกเลิกแล้ว'],
+      COMPLETED: ['bg-purple-100 text-purple-700', 'เสร็จสิ้น'],
+      ACTIVE: ['bg-emerald-100 text-emerald-700', 'ใช้งาน'],
+      INACTIVE: ['bg-red-100 text-red-700', 'ปิดใช้งาน']
+    };
+    const [cls, label] = map[status] || ['bg-slate-100 text-slate-600', status];
+    return `<span class="px-2.5 py-1 rounded-full text-xs font-medium ${cls}">${escapeHtml(label)}</span>`;
+  },
+
+  medalBadge(medal) {
+    const map = {
+      'ทอง': 'bg-amber-100 text-amber-800 border border-amber-300',
+      'เงิน': 'bg-slate-200 text-slate-700 border border-slate-300',
+      'ทองแดง': 'bg-orange-100 text-orange-800 border border-orange-300',
+      'เข้าร่วม': 'bg-slate-50 text-slate-500 border border-slate-200'
+    };
+    if (!medal) return '-';
+    return `<span class="px-2.5 py-1 rounded-full text-xs font-semibold ${map[medal] || ''}">${escapeHtml(medal)}</span>`;
+  },
+
+  openModal(title, contentHtml, showPrint = false) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = contentHtml;
+    document.getElementById('modalPrintBtn').classList.toggle('hidden', !showPrint);
+    document.getElementById('appModal').classList.remove('hidden');
+  },
+
+  closeModal() {
+    document.getElementById('appModal').classList.add('hidden');
+    document.getElementById('modalBody').innerHTML = '';
+    document.getElementById('printArea').innerHTML = '';
+  },
+
+  toast(icon, title) {
+    Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2000 });
+  }
+};
+
+/**
+ * APPLICATION VIEWS CONTROLLER
+ */
+const Views = {
+  async renderDashboard() {
+    document.getElementById('pageTitle').textContent = 'แผงควบคุมสถิติ';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
+
+    try {
+      const stats = await API.call('getDashboardStats');
+      main.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">จำนวนโรงเรียน</p>
+            <h3 class="text-2xl font-bold text-slate-800 mt-1">${stats.totalSchools}</h3>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">รายการแข่งขัน</p>
+            <h3 class="text-2xl font-bold text-slate-800 mt-1">${stats.totalActivities}</h3>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">ทีมเข้าแข่งขัน</p>
+            <h3 class="text-2xl font-bold text-indigo-600 mt-1">${stats.totalRegistrations}</h3>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">ประมวลผลคะแนนแล้ว</p>
+            <h3 class="text-2xl font-bold text-emerald-600 mt-1">${stats.totalScored}</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h4 class="text-sm font-bold text-slate-700 mb-4">สรุปเหรียญรางวัล</h4>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <span class="text-xs text-amber-700 font-bold">ทอง</span>
+                <p class="text-xl font-bold text-amber-800 mt-1">${stats.medals.gold}</p>
+              </div>
+              <div class="p-3 bg-slate-100 rounded-xl border border-slate-200">
+                <span class="text-xs text-slate-600 font-bold">เงิน</span>
+                <p class="text-xl font-bold text-slate-800 mt-1">${stats.medals.silver}</p>
+              </div>
+              <div class="p-3 bg-orange-50 rounded-xl border border-orange-200">
+                <span class="text-xs text-orange-700 font-bold">ทองแดง</span>
+                <p class="text-xl font-bold text-orange-800 mt-1">${stats.medals.bronze}</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h4 class="text-sm font-bold text-slate-700 mb-4">สถานะลงทะเบียน</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">รออนุมัติ</span>
+                <span class="font-bold text-amber-600">${stats.pendingRegistrations} รายการ</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">อนุมัติแล้ว</span>
+                <span class="font-bold text-emerald-600">${stats.approvedRegistrations} รายการ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      main.innerHTML = Components.emptyState('ไม่สามารถโหลดข้อมูลสถิติได้', 'fa-chart-pie');
+    }
+  },
+
+  async renderRegistrations() {
+    document.getElementById('pageTitle').textContent = 'การลงทะเบียนแข่งขัน';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
+
+    try {
+      const list = await API.call('getRegistrations');
+      if (list.length === 0) {
+        main.innerHTML = Components.emptyState('ยังไม่มีรายการลงทะเบียน');
+        return;
+      }
+      let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
+            <tr>
+              <th class="p-4">เลขที่สมัคร</th>
+              <th class="p-4">รายการแข่งขัน</th>
+              <th class="p-4">โรงเรียน</th>
+              <th class="p-4">สถานะ</th>
+              <th class="p-4">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">`;
+      list.forEach(r => {
+        html += `<tr>
+          <td class="p-4 font-mono text-xs font-semibold text-slate-600">${escapeHtml(r.registrationNo)}</td>
+          <td class="p-4 font-medium text-slate-800">${escapeHtml(r.activityName)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(r.schoolName)}</td>
+          <td class="p-4">${Components.statusBadge(r.status)}</td>
+          <td class="p-4">
+            <button onclick="Views.viewCert('${escapeHtml(r.registrationId)}')" class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100">เกียรติบัตร</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      main.innerHTML = html;
+    } catch (e) {
+      main.innerHTML = Components.emptyState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    }
+  },
+
+  async viewCert(regId) {
+    try {
+      const certs = await API.call('getCertificateData', { registrationId: regId });
+      let certHtml = `<div class="space-y-4">`;
+      certs.forEach(c => {
+        certHtml += `<div class="p-6 border-2 border-amber-300 bg-amber-50/30 rounded-2xl text-center relative overflow-hidden">
+          <p class="text-xs text-amber-800 font-semibold uppercase tracking-wider">เกียรติบัตร ${escapeHtml(c.isOfficial ? 'ฉบับจริง' : 'ตัวอย่าง')}</p>
+          <h2 class="text-xl font-bold text-slate-800 mt-2">${escapeHtml(c.recipientName)}</h2>
+          <p class="text-xs text-slate-600 mt-1">${escapeHtml(c.recipientType)} · โรงเรียน${escapeHtml(c.schoolName)}</p>
+          <p class="text-sm font-semibold text-indigo-700 mt-3">${escapeHtml(c.activityName)}</p>
+          <p class="text-xs font-bold text-amber-700 mt-1">${escapeHtml(c.award)}</p>
+          <p class="text-[10px] text-slate-400 mt-4 font-mono">เลขที่: ${escapeHtml(c.certNumber)}</p>
+        </div>`;
+      });
+      certHtml += `</div>`;
+      document.getElementById('printArea').innerHTML = certHtml;
+      Components.openModal('เกียรติบัตร', certHtml, true);
+    } catch (e) {}
+  },
+
+  async renderScoring() {
+    document.getElementById('pageTitle').textContent = 'บันทึกคะแนนการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('เลือกรุ่น/รายการแข่งขันเพื่อบันทึกคะแนน', 'fa-star');
+  },
+
+  async renderSchools() {
+    document.getElementById('pageTitle').textContent = 'จัดการโรงเรียน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const schools = await API.call('getSchools');
+      let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+      schools.forEach(s => {
+        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <h4 class="font-bold text-slate-800">${escapeHtml(s.schoolName)}</h4>
+            <p class="text-xs text-slate-400 mt-0.5">รหัส: ${escapeHtml(s.schoolCode)} | ผู้บริหาร: ${escapeHtml(s.directorName || '-')}</p>
+          </div>
+          ${Components.statusBadge(s.status)}
+        </div>`;
+      });
+      html += `</div>`;
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
+
+  async renderActivities() {
+    document.getElementById('pageTitle').textContent = 'รายการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const acts = await API.call('getActivities');
+      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500">
+          <tr><th class="p-4">รหัส</th><th class="p-4">ชื่อรายการ</th><th class="p-4">ระดับ</th><th class="p-4">สถานะ</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+      acts.forEach(a => {
+        html += `<tr>
+          <td class="p-4 font-mono text-xs">${escapeHtml(a.activityCode)}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(a.activityName)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(a.level)}</td>
+          <td class="p-4">${Components.statusBadge(a.status)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
+
+  async renderJudges() {
+    document.getElementById('pageTitle').textContent = 'กรรมการตัดสิน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการรายชื่อกรรมการตัดสิน', 'fa-user-tie');
+  },
+
+  async renderSchedules() {
+    document.getElementById('pageTitle').textContent = 'ตารางการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ตารางและสถานที่แข่งขัน', 'fa-calendar-days');
+  },
+
+  async renderResultsAdmin() {
+    document.getElementById('pageTitle').textContent = 'ประมวลผล / ประกาศผล';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ระบบประมวลผลคะแนนและออกประกาศผล', 'fa-medal');
+  },
+
+  async renderPublicResultsPage() {
+    document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
+
+    try {
+      const results = await API.call('getPublicResults');
+      if (results.length === 0) {
+        main.innerHTML = Components.emptyState('ยังไม่มีการประกาศผลอย่างเป็นทางการ');
+        return;
+      }
+      let html = `<div class="space-y-4">`;
+      results.forEach(r => {
+        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
+            <h4 class="font-bold text-slate-800 mt-1">${escapeHtml(r.schoolName)}</h4>
+            <p class="text-xs text-slate-500 mt-0.5">รางวัล: ${escapeHtml(r.award)} (เหรียญ${escapeHtml(r.medal)})</p>
+          </div>
+          <div class="text-right">
+            <span class="text-2xl font-black text-amber-500">อันดับ ${escapeHtml(r.rank)}</span>
+            <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(r.finalScore)} คะแนน</p>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+      main.innerHTML = html;
+    } catch (e) {}
+  },
+
+  showPublicResults() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('publicView').classList.remove('hidden');
+    const container = document.getElementById('publicContent');
+    container.innerHTML = Components.loadingSpinner();
+
+    API.call('getPublicResults').then(results => {
+      if (results.length === 0) {
+        container.innerHTML = Components.emptyState('ยังไม่มีประกาศผลอย่างเป็นทางการ');
+        return;
+      }
+      let html = `<div class="max-w-4xl mx-auto space-y-4">`;
+      results.forEach(r => {
+        html += `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
+            <h3 class="text-lg font-bold text-slate-800 mt-0.5">${escapeHtml(r.schoolName)}</h3>
+            <p class="text-xs text-slate-500 mt-1">รางวัล: <span class="font-semibold text-slate-700">${escapeHtml(r.award)}</span></p>
+          </div>
+          <div class="text-right">
+            ${Components.medalBadge(r.medal)}
+            <p class="text-xs font-bold text-amber-600 mt-2">อันดับที่ ${escapeHtml(r.rank)}</p>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    });
+  },
+
+  async renderUsers() {
+    document.getElementById('pageTitle').textContent = 'ผู้ใช้งานระบบ';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการสิทธิ์และผู้ใช้งานระบบ', 'fa-users-gear');
+  },
+
+  async renderSettings() {
+    document.getElementById('pageTitle').textContent = 'ตั้งค่าระบบ';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ตั้งค่าเกณฑ์การตัดสินและปีการศึกษา', 'fa-gears');
+  },
+
+  async renderAuditLog() {
+    document.getElementById('pageTitle').textContent = 'ประวัติการใช้งาน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const logs = await API.call('getAuditLogs');
+      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
+          <tr><th class="p-3">เวลา</th><th class="p-3">ผู้ใช้</th><th class="p-3">การกระทำ</th><th class="p-3">รายละเอียด</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+      logs.forEach(l => {
+        html += `<tr>
+          <td class="p-3 text-slate-400 font-mono">${escapeHtml(l.timestamp)}</td>
+          <td class="p-3 font-bold text-slate-700">${escapeHtml(l.username)}</td>
+          <td class="p-3 font-semibold text-indigo-600">${escapeHtml(l.action)}</td>
+          <td class="p-3 text-slate-600">${escapeHtml(l.description)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
+
+  async renderCertVerify() {
+    document.getElementById('pageTitle').textContent = 'ตรวจสอบเกียรติบัตร';
+    document.getElementById('mainContent').innerHTML = `
+      <div class="max-w-md mx-auto bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full inline-flex items-center justify-center mb-3 text-xl">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <h3 class="font-bold text-slate-800">ตรวจสอบความถูกต้องเกียรติบัตร</h3>
+        <div class="mt-4 space-y-3">
+          <input type="text" id="certNoInput" placeholder="รหัสเกียรติบัตร (เช่น ART74-2569-000001)" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-xs text-center font-mono">
+          <button onclick="Views.doVerifyCert()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition">ตรวจสอบเอกสาร</button>
+        </div>
+      </div>
+    `;
+  },
+
+  async doVerifyCert() {
+    const certNo = document.getElementById('certNoInput').value.trim();
+    if (!certNo) return;
+    try {
+      const res = await API.call('verifyCertificate', { certificateNo: certNo });
+      Swal.fire({
+        icon: 'success',
+        title: 'พบเกียรติบัตรถูกต้อง',
+        html: `<p class="text-sm"><b>ผู้รับ:</b> ${escapeHtml(res.recipientName)}<br><b>กิจกรรม:</b> ${escapeHtml(res.activityName)}<br><b>โรงเรียน:</b> ${escapeHtml(res.schoolName)}</p>`
+      });
+    } catch (e) {}
+  },
+
+  async doGlobalSearch() {
+    const kw = document.getElementById('globalSearchInput').value.trim();
+    if (!kw) return;
+    try {
+      const results = await API.call('globalSearch', { keyword: kw });
+      if (results.length === 0) {
+        Swal.fire('ผลการค้นหา', 'ไม่พบข้อมูลที่ตรงกับคำค้นหา', 'info');
+        return;
+      }
+      let html = `<div class="space-y-2 text-left">`;
+      results.forEach(r => {
+        html += `<div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${escapeHtml(r.type)}</span>
+          <p class="font-bold text-slate-800 text-sm mt-1">${escapeHtml(r.title)}</p>
+          <p class="text-xs text-slate-400">${escapeHtml(r.subtitle)}</p>
+        </div>`;
+      });
+      html += `</div>`;
+      Components.openModal(`ผลการค้นหา "${escapeHtml(kw)}"`, html);
+    } catch (e) {}
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => { App.init(); });
+  </script>
+</body>
+</html>

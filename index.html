@@ -31,6 +31,26 @@
 </head>
 <body class="h-full font-['Sarabun'] antialiased text-slate-800">
 
+  <!-- CONFIG MODAL FOR BACKEND URL -->
+  <div id="configApiModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full inline-flex items-center justify-center mb-3 text-xl">
+          <i class="fa-solid fa-link"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">เชื่อมต่อ Backend (Apps Script)</h3>
+        <p class="text-xs text-slate-500 mt-1">กรุณาระบุ Web App URL ที่ได้ทำการ Deploy จาก Google Apps Script</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Web App Exec URL</label>
+          <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button onclick="App.saveBackendUrl()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl transition">บันทึก URL การเชื่อมต่อ</button>
+      </div>
+    </div>
+  </div>
+
   <!-- LOADING OVERLAY -->
   <div id="globalLoading" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center gap-3">
     <i class="fa-solid fa-trophy text-5xl text-amber-500 animate-bounce"></i>
@@ -39,7 +59,10 @@
 
   <!-- LOGIN VIEW -->
   <div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 px-4">
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-slate-100">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-slate-100 relative">
+      <button onclick="App.openConfigModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-sm" title="ตั้งค่าการเชื่อมต่อ API">
+        <i class="fa-solid fa-gear text-lg"></i>
+      </button>
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4 shadow-inner">
           <i class="fa-solid fa-award text-3xl"></i>
@@ -95,7 +118,7 @@
         </div>
         <div class="p-3">
           <div class="relative">
-            <input type="text" id="globalSearchInput" placeholder="ค้นหา (นักเรียน, โรงเรียน, เลขที่สมัคร...)"
+            <input type="text" id="globalSearchInput" placeholder="ค้นหา (นักเรียน, โรงเรียน...)"
               onkeydown="if(event.key==='Enter') Views.doGlobalSearch()"
               class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
@@ -138,134 +161,89 @@
         </div>
       </div>
       <div id="modalBody" class="p-6 overflow-y-auto flex-1"></div>
-      <!-- Dedicated print target: only #printArea is visible when printing (see @media print).
-           Anything the "print/PDF" button should output (e.g. a certificate) must be cloned in here. -->
       <div id="printArea" class="hidden"></div>
     </div>
   </div>
 
   <script>
 /**
- * ============================================================================
- * SECURITY HELPER — escape any user/API-supplied string before it is
- * injected into innerHTML, to prevent stored/reflected XSS.
- * ============================================================================
+ * SECURITY HELPER
  */
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
   return String(value).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
 /**
- * ============================================================================
- * CORE APPLICATION STATE & API BRIDGE
- * ============================================================================
+ * CORE APPLICATION STATE & API BRIDGE FOR GITHUB PAGES
  */
-/**
- * วาง URL ของ Web App ที่ Deploy แล้วตรงนี้ (ลงท้ายด้วย /exec)
- * ต้องใส่ค่านี้เฉพาะกรณีที่หน้าเว็บนี้ถูกโฮสต์แยกจาก Apps Script
- * (เช่น GitHub Pages, Netlify ฯลฯ) — ถ้าหน้านี้ถูกเปิดผ่าน Web App URL
- * ของ Apps Script เองอยู่แล้ว ระบบจะใช้ google.script.run โดยอัตโนมัติ
- * และไม่จำเป็นต้องตั้งค่านี้เลย
- * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
- */
-const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbwxa0bZRwh_HDnQJOKUBi1u1OaqHI23CHO2ne8jWHJEMAOcHVjkCwg_rRDguz5GYVlD/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
-};
-
 const AppState = {
   token: localStorage.getItem('ART74_TOKEN') || null,
   user: JSON.parse(localStorage.getItem('ART74_USER') || 'null'),
-  currentView: 'dashboard',
-  cache: {}
+  apiUrl: localStorage.getItem('ART74_API_URL') || '',
+  currentView: 'dashboard'
 };
 
 const API = {
   async call(action, payload = {}) {
+    if (!AppState.apiUrl) {
+      App.openConfigModal();
+      throw new Error('กรุณาตั้งค่า Web App URL ของ Apps Script ก่อนใช้งาน');
+    }
+
     const requestData = { action, token: AppState.token, payload };
 
-    const handleResponse = (response) => {
-      if (typeof response === 'string') {
-        try { response = JSON.parse(response); } catch (e) {
-          Swal.fire('ข้อผิดพลาด', 'ไม่สามารถอ่านข้อมูลตอบกลับจากเซิร์ฟเวอร์ได้', 'error');
-          throw e;
-        }
-      }
-      if (response && response.success) {
-        return response.data;
-      }
-      // Prefer the most specific message available:
-      // 1) error.details (fine-grained explanation from the server)
-      // 2) error.message (message attached to the error object)
-      // 3) response.message (top-level fallback)
-      // 4) generic fallback string
-      const err = response && response.error;
-      const msg = (err && err.details) ? err.details
-        : (err && err.message) ? err.message
-        : (response && response.message) ? response.message
-        : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
-
-      if (err && err.code === 'UNAUTHORIZED') {
-        App.forceLogout('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
-      } else {
-        Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
-      }
-      throw (err || new Error(msg));
-    };
-
-    // Mode 1: หน้านี้ถูกเปิดจากภายใน Apps Script Web App เอง (ไม่มีปัญหา CORS)
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler((response) => {
-            try { resolve(handleResponse(response)); } catch (e) { reject(e); }
-          })
-          .withFailureHandler((err) => {
-            Swal.fire('ข้อผิดพลาดเครือข่าย', err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', 'error');
-            reject(err);
-          })
-          .doPost({ postData: { contents: JSON.stringify(requestData) } });
-      });
-    }
-
-    // Mode 2: หน้านี้ถูกโฮสต์แยก (เช่น GitHub Pages) — เรียกข้าม origin ผ่าน fetch()
-    // ใช้ Content-Type: text/plain เพื่อให้ browser มองว่าเป็น "simple request"
-    // และไม่ยิง CORS preflight (OPTIONS) ซึ่ง Apps Script ตอบไม่ได้ครบ
-    if (!CONFIG.API_URL) {
-      const msg = 'ยังไม่ได้ตั้งค่า CONFIG.API_URL (Web App URL) ในไฟล์นี้';
-      console.error(msg);
-      Swal.fire('ตั้งค่าไม่ครบ', msg, 'error');
-      throw new Error(msg);
-    }
     try {
-      const res = await fetch(CONFIG.API_URL, {
+      // POST Request ข้าม Origin บน GitHub Pages ผ่าน Google Apps Script Web App
+      const response = await fetch(AppState.apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(requestData)
       });
-      const text = await res.text();
-      return handleResponse(text);
-    } catch (err) {
-      Swal.fire('ข้อผิดพลาดเครือข่าย', err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', 'error');
-      throw err;
+
+      const res = await response.json();
+
+      if (res && res.success) {
+        return res.data;
+      } else {
+        const err = res && res.error;
+        const msg = (err && err.details) ? err.details
+          : (err && err.message) ? err.message
+          : (res && res.message) ? res.message
+          : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
+
+        if (err && err.code === 'UNAUTHORIZED') {
+          App.forceLogout('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        } else {
+          Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+        }
+        throw new Error(msg);
+      }
+    } catch (e) {
+      if (e.message.includes('Failed to fetch')) {
+        Swal.fire('ข้อผิดพลาดเครือข่าย', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ตรวจสอบ URL หรือการเผยแพร่ Web App', 'error');
+      }
+      throw e;
     }
   }
 };
 
 /**
- * ============================================================================
  * MAIN APP CONTROLLER
- * ============================================================================
  */
 const App = {
   async init() {
     document.getElementById('globalLoading').classList.remove('hidden');
+    
+    if (!AppState.apiUrl) {
+      this.openConfigModal();
+      document.getElementById('globalLoading').classList.add('hidden');
+      this.showLoginView();
+      return;
+    }
+
     if (AppState.token) {
       try {
         const user = await API.call('verifySession');
@@ -280,6 +258,24 @@ const App = {
       this.showLoginView();
     }
     document.getElementById('globalLoading').classList.add('hidden');
+  },
+
+  openConfigModal() {
+    document.getElementById('backendUrlInput').value = AppState.apiUrl;
+    document.getElementById('configApiModal').classList.remove('hidden');
+  },
+
+  saveBackendUrl() {
+    const url = document.getElementById('backendUrlInput').value.trim();
+    if (!url || !url.startsWith('https://script.google.com/')) {
+      Swal.fire('ข้อผิดพลาด', 'กรุณาระบุ Web App URL ของ Apps Script ให้ถูกต้อง', 'error');
+      return;
+    }
+    AppState.apiUrl = url;
+    localStorage.setItem('ART74_API_URL', url);
+    document.getElementById('configApiModal').classList.add('hidden');
+    Swal.fire('สำเร็จ', 'บันทึกการเชื่อมต่อเรียบร้อยแล้ว', 'success');
+    this.init();
   },
 
   forceLogout(message) {
@@ -375,6 +371,7 @@ const App = {
       auditlog: Views.renderAuditLog,
       certVerify: Views.renderCertVerify
     };
+
     if (typeof routes[viewName] === 'function') {
       routes[viewName].call(Views);
     } else {
@@ -399,12 +396,11 @@ const App = {
       localStorage.setItem('ART74_TOKEN', res.token);
       localStorage.setItem('ART74_USER', JSON.stringify(res.user));
 
-      Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', timer: 1200, showConfirmButton: false });
-
+      Components.toast('success', 'เข้าสู่ระบบสำเร็จ');
       this.showAppLayout();
       this.navigate('dashboard');
     } catch (err) {
-      // Error handled by API.call
+      // Error handled in API.call
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>';
@@ -425,12 +421,8 @@ const App = {
   }
 };
 
-window.addEventListener('DOMContentLoaded', () => { App.init(); });
-
 /**
- * ============================================================================
  * REUSABLE UI COMPONENTS
- * ============================================================================
  */
 const Components = {
   loadingSpinner() {
@@ -440,23 +432,9 @@ const Components = {
     </div>`;
   },
 
-  skeletonTable(rows = 5) {
-    let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-3">`;
-    for (let i = 0; i < rows; i++) html += `<div class="skeleton h-10 rounded-lg"></div>`;
-    html += `</div>`;
-    return html;
-  },
-
   emptyState(text, icon = 'fa-inbox') {
     return `<div class="flex flex-col items-center justify-center p-12 text-slate-400">
       <i class="fa-solid ${escapeHtml(icon)} text-5xl mb-3 text-slate-300"></i>
-      <p class="text-sm font-medium">${escapeHtml(text)}</p>
-    </div>`;
-  },
-
-  errorState(text) {
-    return `<div class="flex flex-col items-center justify-center p-12 text-red-400">
-      <i class="fa-solid fa-triangle-exclamation text-5xl mb-3 text-red-300"></i>
       <p class="text-sm font-medium">${escapeHtml(text)}</p>
     </div>`;
   },
@@ -501,604 +479,347 @@ const Components = {
   },
 
   toast(icon, title) {
-    Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2200, timerProgressBar: true });
-  },
-
-  formatDateThai(iso) {
-    if (!iso) return '-';
-    try {
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return iso;
-      return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' +
-        d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return iso; }
+    Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2000 });
   }
 };
 
 /**
- * Simple client-side table helper: search + sort + pagination (no external deps required)
- */
-const TableUX = {
-  state: {},
-  init(key, data) {
-    this.state[key] = { data, filtered: data.slice(), page: 1, pageSize: 10, query: '' };
-  },
-  search(key, query) {
-    const s = this.state[key];
-    s.query = query.toLowerCase();
-    s.filtered = s.query
-      ? s.data.filter(row => JSON.stringify(row).toLowerCase().indexOf(s.query) !== -1)
-      : s.data.slice();
-    s.page = 1;
-  },
-  paginate(key) {
-    const s = this.state[key];
-    const start = (s.page - 1) * s.pageSize;
-    return s.filtered.slice(start, start + s.pageSize);
-  },
-  pageInfo(key) {
-    const s = this.state[key];
-    const totalPages = Math.max(1, Math.ceil(s.filtered.length / s.pageSize));
-    return { page: s.page, totalPages, total: s.filtered.length };
-  },
-  setPage(key, page) {
-    const s = this.state[key];
-    const info = this.pageInfo(key);
-    s.page = Math.min(Math.max(1, page), info.totalPages);
-  },
-  paginationControls(key, renderFn) {
-    const info = this.pageInfo(key);
-    return `<div class="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
-      <span>ทั้งหมด ${info.total} รายการ · หน้า ${info.page}/${info.totalPages}</span>
-      <div class="flex gap-1">
-        <button onclick="${renderFn}(${info.page - 1})" ${info.page <= 1 ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><i class="fa-solid fa-chevron-left"></i></button>
-        <button onclick="${renderFn}(${info.page + 1})" ${info.page >= info.totalPages ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><i class="fa-solid fa-chevron-right"></i></button>
-      </div>
-    </div>`;
-  }
-};
-
-function exportTableToCSV(data, filename) {
-  if (!data || data.length === 0) { Components.toast('warning', 'ไม่มีข้อมูลสำหรับ Export'); return; }
-  const headers = Object.keys(data[0]).filter(k => typeof data[0][k] !== 'object');
-  const rows = data.map(row => headers.map(h => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(','));
-  const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename + '.csv';
-  link.click();
-}
-
-/**
- * ============================================================================
- * VIEWS — DASHBOARD
- * ============================================================================
+ * APPLICATION VIEWS CONTROLLER
  */
 const Views = {
-  charts: {},
-  _studentRowSeq: 0,
-  _teacherRowSeq: 0,
-
   async renderDashboard() {
-    document.getElementById('pageTitle').textContent = 'แผงควบคุมหลัก (Dashboard)';
-    const container = document.getElementById('mainContent');
-    container.innerHTML = Components.skeletonTable(4);
+    document.getElementById('pageTitle').textContent = 'แผงควบคุมสถิติ';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
 
     try {
       const stats = await API.call('getDashboardStats');
-      container.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fa-solid fa-school text-2xl"></i></div>
-            <div><p class="text-xs text-slate-500">โรงเรียนทั้งหมด</p>
-            <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(stats.totalSchools)} <span class="text-xs font-normal">แห่ง</span></h3></div>
+      main.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">จำนวนโรงเรียน</p>
+            <h3 class="text-2xl font-bold text-slate-800 mt-1">${stats.totalSchools}</h3>
           </div>
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div class="p-4 bg-blue-50 text-blue-600 rounded-xl"><i class="fa-solid fa-list-check text-2xl"></i></div>
-            <div><p class="text-xs text-slate-500">รายการแข่งขัน</p>
-            <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(stats.totalActivities)} <span class="text-xs font-normal">รายการ</span></h3></div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">รายการแข่งขัน</p>
+            <h3 class="text-2xl font-bold text-slate-800 mt-1">${stats.totalActivities}</h3>
           </div>
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div class="p-4 bg-amber-50 text-amber-600 rounded-xl"><i class="fa-solid fa-clipboard-check text-2xl"></i></div>
-            <div><p class="text-xs text-slate-500">ทีมเข้าแข่งขัน</p>
-            <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(stats.totalRegistrations)} <span class="text-xs font-normal">ทีม</span></h3></div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">ทีมเข้าแข่งขัน</p>
+            <h3 class="text-2xl font-bold text-indigo-600 mt-1">${stats.totalRegistrations}</h3>
           </div>
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><i class="fa-solid fa-award text-2xl"></i></div>
-            <div><p class="text-xs text-slate-500">ประมวลผลแล้ว</p>
-            <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(stats.totalScored)} <span class="text-xs font-normal">รายการ</span></h3></div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400">ประมวลผลคะแนนแล้ว</p>
+            <h3 class="text-2xl font-bold text-emerald-600 mt-1">${stats.totalScored}</h3>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">สรุปเหรียญรางวัลการแข่งขัน</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-6">
-              <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <span class="text-amber-700 font-bold block text-xl">${escapeHtml(stats.medals.gold)}</span><span class="text-xs text-amber-800">เหรียญทอง</span></div>
-              <div class="p-4 bg-slate-100 border border-slate-300 rounded-xl">
-                <span class="text-slate-700 font-bold block text-xl">${escapeHtml(stats.medals.silver)}</span><span class="text-xs text-slate-800">เหรียญเงิน</span></div>
-              <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl">
-                <span class="text-orange-700 font-bold block text-xl">${escapeHtml(stats.medals.bronze)}</span><span class="text-xs text-orange-800">เหรียญทองแดง</span></div>
-              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                <span class="text-slate-600 font-bold block text-xl">${escapeHtml(stats.medals.participant)}</span><span class="text-xs text-slate-600">เข้าร่วม</span></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h4 class="text-sm font-bold text-slate-700 mb-4">สรุปเหรียญรางวัล</h4>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <span class="text-xs text-amber-700 font-bold">ทอง</span>
+                <p class="text-xl font-bold text-amber-800 mt-1">${stats.medals.gold}</p>
+              </div>
+              <div class="p-3 bg-slate-100 rounded-xl border border-slate-200">
+                <span class="text-xs text-slate-600 font-bold">เงิน</span>
+                <p class="text-xl font-bold text-slate-800 mt-1">${stats.medals.silver}</p>
+              </div>
+              <div class="p-3 bg-orange-50 rounded-xl border border-orange-200">
+                <span class="text-xs text-orange-700 font-bold">ทองแดง</span>
+                <p class="text-xl font-bold text-orange-800 mt-1">${stats.medals.bronze}</p>
+              </div>
             </div>
-            <canvas id="medalChart" height="90"></canvas>
           </div>
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">รายการแข่งขันตามหมวด</h3>
-            <canvas id="categoryChart" height="220"></canvas>
+            <h4 class="text-sm font-bold text-slate-700 mb-4">สถานะลงทะเบียน</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">รออนุมัติ</span>
+                <span class="font-bold text-amber-600">${stats.pendingRegistrations} รายการ</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">อนุมัติแล้ว</span>
+                <span class="font-bold text-emerald-600">${stats.approvedRegistrations} รายการ</span>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">อันดับเหรียญรางวัลแยกโรงเรียน</h3>
-          <canvas id="schoolMedalChart" height="100"></canvas>
-        </div>
       `;
-
-      this.renderDashboardCharts(stats);
     } catch (e) {
-      container.innerHTML = Components.errorState('ไม่สามารถโหลดข้อมูลสถิติได้');
+      main.innerHTML = Components.emptyState('ไม่สามารถโหลดข้อมูลสถิติได้', 'fa-chart-pie');
     }
   },
 
-  renderDashboardCharts(stats) {
-    Object.values(this.charts).forEach(c => c && c.destroy());
-
-    const medalCtx = document.getElementById('medalChart');
-    if (medalCtx) {
-      this.charts.medal = new Chart(medalCtx, {
-        type: 'bar',
-        data: {
-          labels: ['ทอง', 'เงิน', 'ทองแดง', 'เข้าร่วม'],
-          datasets: [{ label: 'จำนวน', data: [stats.medals.gold, stats.medals.silver, stats.medals.bronze, stats.medals.participant],
-            backgroundColor: ['#f59e0b', '#94a3b8', '#ea580c', '#cbd5e1'], borderRadius: 8 }]
-        },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-      });
-    }
-
-    const catCtx = document.getElementById('categoryChart');
-    if (catCtx) {
-      const labels = Object.keys(stats.activitiesByCategory || {});
-      const data = Object.values(stats.activitiesByCategory || {});
-      this.charts.category = new Chart(catCtx, {
-        type: 'doughnut',
-        data: { labels, datasets: [{ data, backgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#a855f7', '#ef4444'] }] },
-        options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
-      });
-    }
-
-    const schoolCtx = document.getElementById('schoolMedalChart');
-    if (schoolCtx) {
-      const schools = Object.keys(stats.medalsBySchool || {});
-      this.charts.school = new Chart(schoolCtx, {
-        type: 'bar',
-        data: {
-          labels: schools,
-          datasets: [
-            { label: 'ทอง', data: schools.map(s => stats.medalsBySchool[s].gold), backgroundColor: '#f59e0b' },
-            { label: 'เงิน', data: schools.map(s => stats.medalsBySchool[s].silver), backgroundColor: '#94a3b8' },
-            { label: 'ทองแดง', data: schools.map(s => stats.medalsBySchool[s].bronze), backgroundColor: '#ea580c' }
-          ]
-        },
-        options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } }
-      });
-    }
-  },
-
-  /**
-   * Public (no-login) results page. Reuses the same admin results renderer
-   * but targets #publicContent and skips any auth-only actions.
-   */
-  showPublicResults() {
-    document.getElementById('loginView').classList.add('hidden');
-    document.getElementById('appLayout').classList.add('hidden');
-    document.getElementById('publicView').classList.remove('hidden');
-    this.renderPublicResultsPage('publicContent');
-  },
-
-  async renderPublicResultsPage(targetId) {
-    const containerId = targetId || 'mainContent';
-    if (!targetId) document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
-    const container = document.getElementById(containerId);
-    container.innerHTML = Components.skeletonTable();
+  async renderRegistrations() {
+    document.getElementById('pageTitle').textContent = 'การลงทะเบียนแข่งขัน';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
 
     try {
-      const results = await API.call('getPublicResults');
-      if (!results || results.length === 0) {
-        container.innerHTML = Components.emptyState('ยังไม่มีการประกาศผลการแข่งขัน', 'fa-trophy');
+      const list = await API.call('getRegistrations');
+      if (list.length === 0) {
+        main.innerHTML = Components.emptyState('ยังไม่มีรายการลงทะเบียน');
         return;
       }
       let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
             <tr>
-              <th class="p-4">รายการแข่งขัน</th><th class="p-4">โรงเรียน</th>
-              <th class="p-4 text-center">คะแนน</th><th class="p-4 text-center">รางวัล</th><th class="p-4 text-center">อันดับ</th>
+              <th class="p-4">เลขที่สมัคร</th>
+              <th class="p-4">รายการแข่งขัน</th>
+              <th class="p-4">โรงเรียน</th>
+              <th class="p-4">สถานะ</th>
+              <th class="p-4">จัดการ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">`;
-      results.forEach(r => {
-        html += `<tr class="hover:bg-slate-50">
-          <td class="p-4 font-semibold text-slate-800">${escapeHtml(r.activityName)}<div class="text-xs text-slate-400">${escapeHtml(r.level)}</div></td>
+      list.forEach(r => {
+        html += `<tr>
+          <td class="p-4 font-mono text-xs font-semibold text-slate-600">${escapeHtml(r.registrationNo)}</td>
+          <td class="p-4 font-medium text-slate-800">${escapeHtml(r.activityName)}</td>
           <td class="p-4 text-slate-600">${escapeHtml(r.schoolName)}</td>
-          <td class="p-4 text-center font-mono">${escapeHtml(r.finalScore)}</td>
-          <td class="p-4 text-center">${Components.medalBadge(r.medal)}</td>
-          <td class="p-4 text-center">${escapeHtml(r.rank)}</td>
+          <td class="p-4">${Components.statusBadge(r.status)}</td>
+          <td class="p-4">
+            <button onclick="Views.viewCert('${escapeHtml(r.registrationId)}')" class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100">เกียรติบัตร</button>
+          </td>
         </tr>`;
       });
-      html += `</tbody></table></div></div>`;
-      container.innerHTML = html;
+      html += `</tbody></table></div>`;
+      main.innerHTML = html;
     } catch (e) {
-      container.innerHTML = Components.errorState('ไม่สามารถโหลดผลการแข่งขันได้');
+      main.innerHTML = Components.emptyState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
     }
   },
 
-  /**
-   * Global sidebar search. Searches registrations by registration number,
-   * activity name, or school name and shows the matches in a modal.
-   */
-  async doGlobalSearch() {
-    const input = document.getElementById('globalSearchInput');
-    const query = (input.value || '').trim();
-    if (!query) return;
-
-    Components.openModal('ผลการค้นหา: ' + query, Components.loadingSpinner());
+  async viewCert(regId) {
     try {
-      const results = await API.call('globalSearch', { keyword: query });
-      if (!results || results.length === 0) {
-        document.getElementById('modalBody').innerHTML = Components.emptyState('ไม่พบผลลัพธ์ที่ตรงกับคำค้นหา');
-        return;
-      }
-      let html = `<div class="divide-y divide-slate-100">`;
-      results.forEach(item => {
-        html += `<div class="py-3 flex items-center justify-between">
+      const certs = await API.call('getCertificateData', { registrationId: regId });
+      let certHtml = `<div class="space-y-4">`;
+      certs.forEach(c => {
+        certHtml += `<div class="p-6 border-2 border-amber-300 bg-amber-50/30 rounded-2xl text-center relative overflow-hidden">
+          <p class="text-xs text-amber-800 font-semibold uppercase tracking-wider">เกียรติบัตร ${escapeHtml(c.isOfficial ? 'ฉบับจริง' : 'ตัวอย่าง')}</p>
+          <h2 class="text-xl font-bold text-slate-800 mt-2">${escapeHtml(c.recipientName)}</h2>
+          <p class="text-xs text-slate-600 mt-1">${escapeHtml(c.recipientType)} · โรงเรียน${escapeHtml(c.schoolName)}</p>
+          <p class="text-sm font-semibold text-indigo-700 mt-3">${escapeHtml(c.activityName)}</p>
+          <p class="text-xs font-bold text-amber-700 mt-1">${escapeHtml(c.award)}</p>
+          <p class="text-[10px] text-slate-400 mt-4 font-mono">เลขที่: ${escapeHtml(c.certNumber)}</p>
+        </div>`;
+      });
+      certHtml += `</div>`;
+      document.getElementById('printArea').innerHTML = certHtml;
+      Components.openModal('เกียรติบัตร', certHtml, true);
+    } catch (e) {}
+  },
+
+  async renderScoring() {
+    document.getElementById('pageTitle').textContent = 'บันทึกคะแนนการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('เลือกรุ่น/รายการแข่งขันเพื่อบันทึกคะแนน', 'fa-star');
+  },
+
+  async renderSchools() {
+    document.getElementById('pageTitle').textContent = 'จัดการโรงเรียน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const schools = await API.call('getSchools');
+      let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+      schools.forEach(s => {
+        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
-            <p class="font-semibold text-slate-800">${escapeHtml(item.title)}</p>
-            <p class="text-xs text-slate-400">${escapeHtml(item.subtitle || '')}</p>
+            <h4 class="font-bold text-slate-800">${escapeHtml(s.schoolName)}</h4>
+            <p class="text-xs text-slate-400 mt-0.5">รหัส: ${escapeHtml(s.schoolCode)} | ผู้บริหาร: ${escapeHtml(s.directorName || '-')}</p>
           </div>
-          <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-500">${escapeHtml(item.type || '')}</span>
+          ${Components.statusBadge(s.status)}
         </div>`;
       });
       html += `</div>`;
-      document.getElementById('modalBody').innerHTML = html;
-    } catch (e) {
-      document.getElementById('modalBody').innerHTML = Components.errorState('เกิดข้อผิดพลาดในการค้นหา');
-    }
-  }
-};
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
 
-/**
- * ============================================================================
- * VIEWS — REGISTRATIONS (List + Create/Edit Form with dynamic student/teacher rows)
- * ============================================================================
- */
-Views.renderRegistrations = async function () {
-  document.getElementById('pageTitle').textContent = 'จัดการการลงทะเบียนแข่งขัน';
-  const container = document.getElementById('mainContent');
-  container.innerHTML = Components.skeletonTable();
-
-  try {
-    const [regs, activities] = await Promise.all([API.call('getRegistrations'), API.call('getActivities')]);
-    this._regCache = regs; this._activityCache = activities;
-    TableUX.init('regs', regs);
-    this.paintRegistrationsTable(1);
-  } catch (e) {
-    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-  }
-};
-
-Views.paintRegistrationsTable = function (page) {
-  const container = document.getElementById('mainContent');
-  if (page) TableUX.setPage('regs', page);
-  const rows = TableUX.paginate('regs');
-  const isSchool = AppState.user.role === 'SCHOOL';
-  const isAdmin = AppState.user.role === 'SUPER_ADMIN' || AppState.user.role === 'ADMIN';
-
-  let html = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
-      <div class="relative w-full md:w-80">
-        <input type="text" placeholder="ค้นหา..." oninput="Views.searchRegs(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="exportTableToCSV(Views._regCache, 'registrations')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
-          <i class="fa-solid fa-file-csv"></i> Export
-        </button>
-        ${isSchool ? `<button onclick="Views.openRegistrationModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
-          <i class="fa-solid fa-plus"></i> สมัครเข้าแข่งขัน
-        </button>` : ''}
-      </div>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
-          <tr>
-            <th class="p-4">เลขที่สมัคร</th><th class="p-4">รายการแข่งขัน</th><th class="p-4">โรงเรียน</th>
-            <th class="p-4 text-center">นักเรียน</th><th class="p-4 text-center">ครู</th>
-            <th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-  `;
-
-  if (rows.length === 0) {
-    html += `<tr><td colspan="7" class="p-0">${Components.emptyState('ยังไม่มีข้อมูลการสมัคร')}</td></tr>`;
-  } else {
-    rows.forEach(r => {
-      html += `
-        <tr class="hover:bg-slate-50">
-          <td class="p-4 font-mono font-medium text-indigo-600">${escapeHtml(r.registrationNo)}</td>
-          <td class="p-4 font-semibold text-slate-800">${escapeHtml(r.activityName)}<div class="text-xs text-slate-400">${escapeHtml(r.level)}</div></td>
-          <td class="p-4 text-slate-600">${escapeHtml(r.schoolName)}</td>
-          <td class="p-4 text-center">${escapeHtml(r.studentCount)}</td>
-          <td class="p-4 text-center">${escapeHtml(r.teacherCount)}</td>
-          <td class="p-4">${Components.statusBadge(r.status)}</td>
-          <td class="p-4 text-center whitespace-nowrap">
-            <button onclick="Views.viewRegistrationDetail('${r.registrationId}')" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="ดูรายละเอียด"><i class="fa-solid fa-eye"></i></button>
-            ${isSchool && r.status === 'DRAFT' ? `<button onclick="Views.openRegistrationModal('${r.registrationId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="Views.submitRegistration('${r.registrationId}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="ส่งใบสมัคร"><i class="fa-solid fa-paper-plane"></i></button>` : ''}
-            ${isSchool && (r.status === 'DRAFT' || r.status === 'SUBMITTED') ? `<button onclick="Views.cancelRegistration('${r.registrationId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="ยกเลิก"><i class="fa-solid fa-ban"></i></button>` : ''}
-            ${isAdmin && r.status === 'SUBMITTED' ? `<button onclick="Views.approveRegistration('${r.registrationId}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="อนุมัติ"><i class="fa-solid fa-check"></i></button>
-              <button onclick="Views.rejectRegistration('${r.registrationId}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="ไม่อนุมัติ"><i class="fa-solid fa-xmark"></i></button>` : ''}
-            <button onclick="Views.viewCertificate('${r.registrationId}')" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg" title="เกียรติบัตร"><i class="fa-solid fa-certificate"></i></button>
-          </td>
+  async renderActivities() {
+    document.getElementById('pageTitle').textContent = 'รายการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const acts = await API.call('getActivities');
+      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500">
+          <tr><th class="p-4">รหัส</th><th class="p-4">ชื่อรายการ</th><th class="p-4">ระดับ</th><th class="p-4">สถานะ</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+      acts.forEach(a => {
+        html += `<tr>
+          <td class="p-4 font-mono text-xs">${escapeHtml(a.activityCode)}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(a.activityName)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(a.level)}</td>
+          <td class="p-4">${Components.statusBadge(a.status)}</td>
         </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
+
+  async renderJudges() {
+    document.getElementById('pageTitle').textContent = 'กรรมการตัดสิน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการรายชื่อกรรมการตัดสิน', 'fa-user-tie');
+  },
+
+  async renderSchedules() {
+    document.getElementById('pageTitle').textContent = 'ตารางการแข่งขัน';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ตารางและสถานที่แข่งขัน', 'fa-calendar-days');
+  },
+
+  async renderResultsAdmin() {
+    document.getElementById('pageTitle').textContent = 'ประมวลผล / ประกาศผล';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ระบบประมวลผลคะแนนและออกประกาศผล', 'fa-medal');
+  },
+
+  async renderPublicResultsPage() {
+    document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
+    const main = document.getElementById('mainContent');
+    main.innerHTML = Components.loadingSpinner();
+
+    try {
+      const results = await API.call('getPublicResults');
+      if (results.length === 0) {
+        main.innerHTML = Components.emptyState('ยังไม่มีการประกาศผลอย่างเป็นทางการ');
+        return;
+      }
+      let html = `<div class="space-y-4">`;
+      results.forEach(r => {
+        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
+            <h4 class="font-bold text-slate-800 mt-1">${escapeHtml(r.schoolName)}</h4>
+            <p class="text-xs text-slate-500 mt-0.5">รางวัล: ${escapeHtml(r.award)} (เหรียญ${escapeHtml(r.medal)})</p>
+          </div>
+          <div class="text-right">
+            <span class="text-2xl font-black text-amber-500">อันดับ ${escapeHtml(r.rank)}</span>
+            <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(r.finalScore)} คะแนน</p>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+      main.innerHTML = html;
+    } catch (e) {}
+  },
+
+  showPublicResults() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('publicView').classList.remove('hidden');
+    const container = document.getElementById('publicContent');
+    container.innerHTML = Components.loadingSpinner();
+
+    API.call('getPublicResults').then(results => {
+      if (results.length === 0) {
+        container.innerHTML = Components.emptyState('ยังไม่มีประกาศผลอย่างเป็นทางการ');
+        return;
+      }
+      let html = `<div class="max-w-4xl mx-auto space-y-4">`;
+      results.forEach(r => {
+        html += `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
+            <h3 class="text-lg font-bold text-slate-800 mt-0.5">${escapeHtml(r.schoolName)}</h3>
+            <p class="text-xs text-slate-500 mt-1">รางวัล: <span class="font-semibold text-slate-700">${escapeHtml(r.award)}</span></p>
+          </div>
+          <div class="text-right">
+            ${Components.medalBadge(r.medal)}
+            <p class="text-xs font-bold text-amber-600 mt-2">อันดับที่ ${escapeHtml(r.rank)}</p>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
     });
-  }
-  html += `</tbody></table></div>${TableUX.paginationControls('regs', 'Views.paintRegistrationsTable')}</div>`;
-  container.innerHTML = html;
-};
+  },
 
-Views.searchRegs = function (q) { TableUX.search('regs', q); this.paintRegistrationsTable(1); };
+  async renderUsers() {
+    document.getElementById('pageTitle').textContent = 'ผู้ใช้งานระบบ';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการสิทธิ์และผู้ใช้งานระบบ', 'fa-users-gear');
+  },
 
-Views.viewRegistrationDetail = function (regId) {
-  const r = this._regCache.find(x => x.registrationId === regId);
-  if (!r) return;
-  let html = `<div class="space-y-4 text-sm">
-    <div class="grid grid-cols-2 gap-4">
-      <div><p class="text-slate-400 text-xs">เลขที่สมัคร</p><p class="font-semibold font-mono">${escapeHtml(r.registrationNo)}</p></div>
-      <div><p class="text-slate-400 text-xs">สถานะ</p>${Components.statusBadge(r.status)}</div>
-      <div><p class="text-slate-400 text-xs">รายการแข่งขัน</p><p class="font-semibold">${escapeHtml(r.activityName)}</p></div>
-      <div><p class="text-slate-400 text-xs">โรงเรียน</p><p class="font-semibold">${escapeHtml(r.schoolName)}</p></div>
-    </div>
-    <h4 class="font-bold text-slate-700 pt-2 border-t">รายชื่อนักเรียน (${r.students.length})</h4>
-    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ชั้น</th><th class="text-left py-1">รหัสนักเรียน</th></tr></thead><tbody>
-      ${r.students.map(s => `<tr class="border-t"><td class="py-1.5">${escapeHtml(s.fullName)}</td><td class="py-1.5">${escapeHtml(s.grade)}</td><td class="py-1.5">${escapeHtml(s.studentCode) || '-'}</td></tr>`).join('')}
-    </tbody></table>
-    <h4 class="font-bold text-slate-700 pt-2 border-t">ครูผู้ควบคุม (${r.teachers.length})</h4>
-    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ตำแหน่ง</th><th class="text-left py-1">โทรศัพท์</th></tr></thead><tbody>
-      ${r.teachers.map(t => `<tr class="border-t"><td class="py-1.5">${escapeHtml(t.fullName)}</td><td class="py-1.5">${escapeHtml(t.position)}</td><td class="py-1.5">${escapeHtml(t.phone) || '-'}</td></tr>`).join('')}
-    </tbody></table>
-    ${r.notes ? `<div class="pt-2 border-t"><p class="text-slate-400 text-xs">หมายเหตุ</p><p>${escapeHtml(r.notes)}</p></div>` : ''}
-  </div>`;
-  Components.openModal('รายละเอียดการสมัคร: ' + r.registrationNo, html);
-};
+  async renderSettings() {
+    document.getElementById('pageTitle').textContent = 'ตั้งค่าระบบ';
+    document.getElementById('mainContent').innerHTML = Components.emptyState('ตั้งค่าเกณฑ์การตัดสินและปีการศึกษา', 'fa-gears');
+  },
 
-Views.openRegistrationModal = function (regId) {
-  const reg = regId ? this._regCache.find(r => r.registrationId === regId) : null;
-  const activities = this._activityCache.filter(a => a.status === 'ACTIVE');
+  async renderAuditLog() {
+    document.getElementById('pageTitle').textContent = 'ประวัติการใช้งาน';
+    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
+    try {
+      const logs = await API.call('getAuditLogs');
+      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
+          <tr><th class="p-3">เวลา</th><th class="p-3">ผู้ใช้</th><th class="p-3">การกระทำ</th><th class="p-3">รายละเอียด</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+      logs.forEach(l => {
+        html += `<tr>
+          <td class="p-3 text-slate-400 font-mono">${escapeHtml(l.timestamp)}</td>
+          <td class="p-3 font-bold text-slate-700">${escapeHtml(l.username)}</td>
+          <td class="p-3 font-semibold text-indigo-600">${escapeHtml(l.action)}</td>
+          <td class="p-3 text-slate-600">${escapeHtml(l.description)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+    } catch (e) {}
+  },
 
-  let html = `
-    <form id="regForm" onsubmit="Views.submitRegistrationForm(event, '${regId || ''}')" class="space-y-5">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">รายการแข่งขัน *</label>
-        <select id="regActivitySelect" ${reg ? 'disabled' : ''} required onchange="Views.onActivityChangeForReg()" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-          <option value="">-- เลือกรายการแข่งขัน --</option>
-          ${activities.map(a => `<option value="${a.activityId}" data-min-s="${a.minStudents}" data-max-s="${a.maxStudents}" data-min-t="${a.minTeachers}" data-max-t="${a.maxTeachers}" ${reg && reg.activityId === a.activityId ? 'selected' : ''}>${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)} (${escapeHtml(a.level)})</option>`).join('')}
-        </select>
-        <p id="activityHint" class="text-xs text-slate-400 mt-1"></p>
-      </div>
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-semibold text-slate-700">รายชื่อนักเรียน</label>
-          <button type="button" onclick="Views.addStudentRow()" class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มนักเรียน</button>
+  async renderCertVerify() {
+    document.getElementById('pageTitle').textContent = 'ตรวจสอบเกียรติบัตร';
+    document.getElementById('mainContent').innerHTML = `
+      <div class="max-w-md mx-auto bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full inline-flex items-center justify-center mb-3 text-xl">
+          <i class="fa-solid fa-qrcode"></i>
         </div>
-        <div id="studentRows" class="space-y-2"></div>
-      </div>
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-semibold text-slate-700">ครูผู้ควบคุม</label>
-          <button type="button" onclick="Views.addTeacherRow()" class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มครู</button>
+        <h3 class="font-bold text-slate-800">ตรวจสอบความถูกต้องเกียรติบัตร</h3>
+        <div class="mt-4 space-y-3">
+          <input type="text" id="certNoInput" placeholder="รหัสเกียรติบัตร (เช่น ART74-2569-000001)" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-xs text-center font-mono">
+          <button onclick="Views.doVerifyCert()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition">ตรวจสอบเอกสาร</button>
         </div>
-        <div id="teacherRows" class="space-y-2"></div>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">หมายเหตุ</label>
-        <textarea id="regNotes" rows="2" class="w-full p-3 border border-slate-300 rounded-xl text-sm">${reg ? escapeHtml(reg.notes || '') : ''}</textarea>
-      </div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
-        <i class="fa-solid fa-floppy-disk"></i> บันทึกแบบร่าง
-      </button>
-    </form>
-  `;
-  Components.openModal(reg ? 'แก้ไขการสมัคร: ' + reg.registrationNo : 'สมัครเข้าแข่งขันใหม่', html);
+    `;
+  },
 
-  if (reg) {
-    reg.students.forEach(s => this.addStudentRow(s));
-    reg.teachers.forEach(t => this.addTeacherRow(t));
-  } else {
-    this.addStudentRow();
-  }
-  this.onActivityChangeForReg();
-};
+  async doVerifyCert() {
+    const certNo = document.getElementById('certNoInput').value.trim();
+    if (!certNo) return;
+    try {
+      const res = await API.call('verifyCertificate', { certificateNo: certNo });
+      Swal.fire({
+        icon: 'success',
+        title: 'พบเกียรติบัตรถูกต้อง',
+        html: `<p class="text-sm"><b>ผู้รับ:</b> ${escapeHtml(res.recipientName)}<br><b>กิจกรรม:</b> ${escapeHtml(res.activityName)}<br><b>โรงเรียน:</b> ${escapeHtml(res.schoolName)}</p>`
+      });
+    } catch (e) {}
+  },
 
-Views.onActivityChangeForReg = function () {
-  const sel = document.getElementById('regActivitySelect');
-  const opt = sel.options[sel.selectedIndex];
-  const hint = document.getElementById('activityHint');
-  if (opt && opt.value) {
-    hint.textContent = `นักเรียน: ${opt.dataset.minS}-${opt.dataset.maxS} คน · ครู: ${opt.dataset.minT}-${opt.dataset.maxT} คน`;
-  } else {
-    hint.textContent = '';
-  }
-};
-
-Views.addStudentRow = function (data) {
-  const id = 'srow_' + (this._studentRowSeq++);
-  const div = document.createElement('div');
-  div.id = id;
-  div.className = 'grid grid-cols-12 gap-2 items-center';
-  div.innerHTML = `
-    <select class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs s-prefix">
-      <option ${data && data.prefix === 'เด็กชาย' ? 'selected' : ''}>เด็กชาย</option>
-      <option ${data && data.prefix === 'เด็กหญิง' ? 'selected' : ''}>เด็กหญิง</option>
-      <option ${data && data.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
-      <option ${data && data.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-    </select>
-    <input placeholder="ชื่อ" value="${escapeHtml(data ? data.firstName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs s-fname" required>
-    <input placeholder="สกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs s-lname" required>
-    <input placeholder="ชั้น" value="${escapeHtml(data ? data.grade || '' : '')}" class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs s-grade">
-    <input placeholder="รหัส นร." value="${escapeHtml(data ? data.studentCode || '' : '')}" class="col-span-1 p-2 border border-slate-300 rounded-lg text-xs s-code">
-    <button type="button" onclick="document.getElementById('${id}').remove()" class="col-span-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
-  `;
-  document.getElementById('studentRows').appendChild(div);
-};
-
-Views.addTeacherRow = function (data) {
-  const id = 'trow_' + (this._teacherRowSeq++);
-  const div = document.createElement('div');
-  div.id = id;
-  div.className = 'grid grid-cols-12 gap-2 items-center';
-  div.innerHTML = `
-    <select class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs t-prefix">
-      <option ${data && data.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
-      <option ${data && data.prefix === 'นาง' ? 'selected' : ''}>นาง</option>
-      <option ${data && data.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-    </select>
-    <input placeholder="ชื่อ" value="${escapeHtml(data ? data.firstName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-fname" required>
-    <input placeholder="สกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-lname" required>
-    <input placeholder="ตำแหน่ง" value="${escapeHtml(data ? data.position || 'ครู' : 'ครู')}" class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs t-position">
-    <input placeholder="โทรศัพท์" value="${escapeHtml(data ? data.phone || '' : '')}" class="col-span-1 p-2 border border-slate-300 rounded-lg text-xs t-phone">
-    <button type="button" onclick="document.getElementById('${id}').remove()" class="col-span-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
-  `;
-  document.getElementById('teacherRows').appendChild(div);
-};
-
-Views.submitRegistrationForm = async function (event, regId) {
-  event.preventDefault();
-  const activityId = document.getElementById('regActivitySelect').value;
-  if (!activityId) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการแข่งขัน', 'warning'); return; }
-
-  const students = Array.from(document.getElementById('studentRows').children).map(row => ({
-    prefix: row.querySelector('.s-prefix').value, firstName: row.querySelector('.s-fname').value,
-    lastName: row.querySelector('.s-lname').value, grade: row.querySelector('.s-grade').value,
-    studentCode: row.querySelector('.s-code').value
-  }));
-  const teachers = Array.from(document.getElementById('teacherRows').children).map(row => ({
-    prefix: row.querySelector('.t-prefix').value, firstName: row.querySelector('.t-fname').value,
-    lastName: row.querySelector('.t-lname').value, position: row.querySelector('.t-position').value,
-    phone: row.querySelector('.t-phone').value
-  }));
-
-  // Client-side check against the selected activity's min/max headcount,
-  // mirroring whatever the server enforces (server remains source of truth).
-  const sel = document.getElementById('regActivitySelect');
-  const opt = sel.options[sel.selectedIndex];
-  if (opt && opt.value) {
-    const minS = parseInt(opt.dataset.minS, 10) || 0;
-    const maxS = parseInt(opt.dataset.maxS, 10) || Infinity;
-    const minT = parseInt(opt.dataset.minT, 10) || 0;
-    const maxT = parseInt(opt.dataset.maxT, 10) || Infinity;
-    if (students.length < minS || students.length > maxS) {
-      Swal.fire('แจ้งเตือน', `จำนวนนักเรียนต้องอยู่ระหว่าง ${minS}-${maxS} คน`, 'warning');
-      return;
-    }
-    if (teachers.length < minT || teachers.length > maxT) {
-      Swal.fire('แจ้งเตือน', `จำนวนครูผู้ควบคุมต้องอยู่ระหว่าง ${minT}-${maxT} คน`, 'warning');
-      return;
-    }
-  }
-
-  try {
-    await API.call('saveRegistration', { registrationId: regId || undefined, activityId, students, teachers, notes: document.getElementById('regNotes').value });
-    Components.closeModal();
-    Components.toast('success', 'บันทึกข้อมูลการลงทะเบียนสำเร็จ');
-    this.renderRegistrations();
-  } catch (e) {}
-};
-
-Views.submitRegistration = async function (regId) {
-  const confirm = await Swal.fire({ title: 'ยืนยันส่งใบสมัคร?', text: 'หลังจากส่งแล้วจะไม่สามารถแก้ไขได้', icon: 'question', showCancelButton: true, confirmButtonText: 'ส่งใบสมัคร' });
-  if (!confirm.isConfirmed) return;
-  try {
-    await API.call('submitRegistration', { registrationId: regId });
-    Components.toast('success', 'ส่งใบสมัครเรียบร้อยแล้ว');
-    this.renderRegistrations();
-  } catch (e) {}
-};
-
-Views.cancelRegistration = async function (regId) {
-  const confirm = await Swal.fire({ title: 'ยืนยันยกเลิกการสมัคร?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ยกเลิกรายการ' });
-  if (!confirm.isConfirmed) return;
-  try {
-    await API.call('cancelRegistration', { registrationId: regId });
-    Components.toast('success', 'ยกเลิกการสมัครสำเร็จ');
-    this.renderRegistrations();
-  } catch (e) {}
-};
-
-Views.approveRegistration = async function (regId) {
-  const confirm = await Swal.fire({ title: 'อนุมัติการลงทะเบียนนี้?', icon: 'question', showCancelButton: true, confirmButtonText: 'อนุมัติ' });
-  if (!confirm.isConfirmed) return;
-  try {
-    await API.call('approveRegistration', { registrationId: regId });
-    Components.toast('success', 'อนุมัติสำเร็จ');
-    this.renderRegistrations();
-  } catch (e) {}
-};
-
-Views.rejectRegistration = async function (regId) {
-  const { value: reason, isConfirmed } = await Swal.fire({
-    title: 'ไม่อนุมัติการลงทะเบียน', input: 'text', inputLabel: 'เหตุผล', showCancelButton: true, confirmButtonText: 'ยืนยัน'
-  });
-  if (!isConfirmed) return;
-  try {
-    await API.call('rejectRegistration', { registrationId: regId, notes: reason });
-    Components.toast('success', 'บันทึกการไม่อนุมัติสำเร็จ');
-    this.renderRegistrations();
-  } catch (e) {}
-};
-
-/**
- * Certificate viewer. Loads certificate data for a registration and shows
- * it in the modal with the print button enabled; also mirrors the markup
- * into #printArea so window.print() (triggered by modalPrintBtn) only
- * outputs the certificate itself, per the @media print rules above.
- */
-Views.viewCertificate = async function (regId) {
-  Components.openModal('เกียรติบัตร', Components.loadingSpinner());
-  try {
-    const certs = await API.call('getCertificateData', { registrationId: regId });
-    if (!certs || certs.length === 0) {
-      document.getElementById('modalBody').innerHTML = Components.emptyState('ยังไม่มีข้อมูลเกียรติบัตรสำหรับรายการนี้');
-      return;
-    }
-    const certHtml = certs.map(cert => `
-      <div class="cert-page text-center p-10 border-4 border-amber-400 rounded-2xl">
-        ${!cert.isOfficial ? '<p class="text-xs font-bold text-red-500 mb-2">** ตัวอย่างเบื้องต้น ยังไม่เป็นทางการ (รอประกาศผลอย่างเป็นทางการ) **</p>' : ''}
-        <i class="fa-solid fa-award text-5xl text-amber-500 mb-4"></i>
-        <h2 class="text-2xl font-bold mb-2">เกียรติบัตร</h2>
-        <p class="text-slate-600 mb-1">งานศิลปหัตถกรรมนักเรียน ครั้งที่ 74</p>
-        <p class="text-xs text-slate-400">${escapeHtml(cert.certNumber)}</p>
-        <p class="text-lg font-semibold mt-4">${escapeHtml(cert.recipientName)} <span class="text-xs font-normal text-slate-400">(${escapeHtml(cert.recipientType)})</span></p>
-        <p class="text-slate-600">${escapeHtml(cert.activityName)}</p>
-        <p class="text-slate-600">โรงเรียน${escapeHtml(cert.schoolName)}</p>
-        <p class="mt-2 font-semibold">${escapeHtml(cert.award)}</p>
-        <p class="text-xs text-slate-400 mt-2">ออกให้เมื่อ ${escapeHtml(cert.issueDate)}</p>
-      </div>`).join('');
-    document.getElementById('modalBody').innerHTML = certHtml;
-    document.getElementById('printArea').innerHTML = certHtml;
-    document.getElementById('modalPrintBtn').classList.remove('hidden');
-  } catch (e) {
-    document.getElementById('modalBody').innerHTML = Components.errorState('ไม่สามารถโหลดเกียรติบัตรได้');
+  async doGlobalSearch() {
+    const kw = document.getElementById('globalSearchInput').value.trim();
+    if (!kw) return;
+    try {
+      const results = await API.call('globalSearch', { keyword: kw });
+      if (results.length === 0) {
+        Swal.fire('ผลการค้นหา', 'ไม่พบข้อมูลที่ตรงกับคำค้นหา', 'info');
+        return;
+      }
+      let html = `<div class="space-y-2 text-left">`;
+      results.forEach(r => {
+        html += `<div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${escapeHtml(r.type)}</span>
+          <p class="font-bold text-slate-800 text-sm mt-1">${escapeHtml(r.title)}</p>
+          <p class="text-xs text-slate-400">${escapeHtml(r.subtitle)}</p>
+        </div>`;
+      });
+      html += `</div>`;
+      Components.openModal(`ผลการค้นหา "${escapeHtml(kw)}"`, html);
+    } catch (e) {}
   }
 };
-</script>
+
+window.addEventListener('DOMContentLoaded', () => { App.init(); });
+  </script>
 </body>
 </html>

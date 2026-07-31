@@ -176,7 +176,7 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbyjb4Ov3Mjx4fex6SkyV0vfnxRZjtF1pLVV-Y2bwCuSjBfwT5AEx600gq5PyuyTYrQ/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbwhdTYmPP5-MiKE3MMuSgCZcTU93aMgBJ8mhN_-swayRwBxBWS_INW-YLNHU-crTQ4H/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
 
 const AppState = {
@@ -424,11 +424,9 @@ const App = {
     }
   }
 };
-/**
- * ============================================================================
- * REUSABLE UI COMPONENTS
- * ============================================================================
- */
+
+window.addEventListener('DOMContentLoaded', () => { App.init(); });
+
 /**
  * ============================================================================
  * REUSABLE UI COMPONENTS
@@ -1101,311 +1099,172 @@ Views.viewCertificate = async function (regId) {
     document.getElementById('modalBody').innerHTML = Components.errorState('ไม่สามารถโหลดเกียรติบัตรได้');
   }
 };
- async renderScoring() {
-    document.getElementById('pageTitle').textContent = 'บันทึกคะแนนการแข่งขัน';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('เลือกรุ่น/รายการแข่งขันเพื่อบันทึกคะแนน', 'fa-star');
-  },
 
-  async renderSchools() {
-    document.getElementById('pageTitle').textContent = 'จัดการโรงเรียน';
-    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
-    try {
-      const schools = await API.call('getSchools');
-      let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
-      schools.forEach(s => {
-        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-          <div>
-            <h4 class="font-bold text-slate-800">${escapeHtml(s.schoolName)}</h4>
-            <p class="text-xs text-slate-400 mt-0.5">รหัส: ${escapeHtml(s.schoolCode)} | ผู้บริหาร: ${escapeHtml(s.directorName || '-')}</p>
-          </div>
-          ${Components.statusBadge(s.status)}
-        </div>`;
-      });
-      html += `</div>`;
-      document.getElementById('mainContent').innerHTML = html;
-    } catch (e) {}
-  },
-
-  async renderActivities() {
-    document.getElementById('pageTitle').textContent = 'รายการแข่งขัน';
-    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
-    try {
-      const acts = await API.call('getActivities');
-      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-sm">
-        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500">
-          <tr><th class="p-4">รหัส</th><th class="p-4">ชื่อรายการ</th><th class="p-4">ระดับ</th><th class="p-4">สถานะ</th></tr>
-        </thead><tbody class="divide-y divide-slate-100">`;
-      acts.forEach(a => {
-        html += `<tr>
-          <td class="p-4 font-mono text-xs">${escapeHtml(a.activityCode)}</td>
-          <td class="p-4 font-semibold text-slate-800">${escapeHtml(a.activityName)}</td>
-          <td class="p-4 text-slate-600">${escapeHtml(a.level)}</td>
-          <td class="p-4">${Components.statusBadge(a.status)}</td>
-        </tr>`;
-      });
-      html += `</tbody></table></div>`;
-      document.getElementById('mainContent').innerHTML = html;
-    } catch (e) {}
-  },
-
-  async renderJudges() {
-    document.getElementById('pageTitle').textContent = 'กรรมการตัดสิน';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการรายชื่อกรรมการตัดสิน', 'fa-user-tie');
-  },
-
-  async renderSchedules() {
-    document.getElementById('pageTitle').textContent = 'ตารางการแข่งขัน';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('ตารางและสถานที่แข่งขัน', 'fa-calendar-days');
-  },
-
-  async renderResultsAdmin() {
-    document.getElementById('pageTitle').textContent = 'ประมวลผล / ประกาศผล';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('ระบบประมวลผลคะแนนและออกประกาศผล', 'fa-medal');
-  },
-
-  async renderPublicResultsPage() {
-    document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
-    const main = document.getElementById('mainContent');
-    main.innerHTML = Components.loadingSpinner();
-
-    try {
-      const results = await API.call('getPublicResults');
-      if (results.length === 0) {
-        main.innerHTML = Components.emptyState('ยังไม่มีการประกาศผลอย่างเป็นทางการ');
-        return;
-      }
-      let html = `<div class="space-y-4">`;
-      results.forEach(r => {
-        html += `<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
-            <h4 class="font-bold text-slate-800 mt-1">${escapeHtml(r.schoolName)}</h4>
-            <p class="text-xs text-slate-500 mt-0.5">รางวัล: ${escapeHtml(r.award)} (เหรียญ${escapeHtml(r.medal)})</p>
-          </div>
-          <div class="text-right">
-            <span class="text-2xl font-black text-amber-500">อันดับ ${escapeHtml(r.rank)}</span>
-            <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(r.finalScore)} คะแนน</p>
-          </div>
-        </div>`;
-      });
-      html += `</div>`;
-      main.innerHTML = html;
-    } catch (e) {}
-  },
-
-  showPublicResults() {
-    document.getElementById('loginView').classList.add('hidden');
-    document.getElementById('publicView').classList.remove('hidden');
-    const container = document.getElementById('publicContent');
-    container.innerHTML = Components.loadingSpinner();
-
-    API.call('getPublicResults').then(results => {
-      if (results.length === 0) {
-        container.innerHTML = Components.emptyState('ยังไม่มีประกาศผลอย่างเป็นทางการ');
-        return;
-      }
-      let html = `<div class="max-w-4xl mx-auto space-y-4">`;
-      results.forEach(r => {
-        html += `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-          <div>
-            <span class="text-xs font-bold text-indigo-600">${escapeHtml(r.activityName)} (${escapeHtml(r.level)})</span>
-            <h3 class="text-lg font-bold text-slate-800 mt-0.5">${escapeHtml(r.schoolName)}</h3>
-            <p class="text-xs text-slate-500 mt-1">รางวัล: <span class="font-semibold text-slate-700">${escapeHtml(r.award)}</span></p>
-          </div>
-          <div class="text-right">
-            ${Components.medalBadge(r.medal)}
-            <p class="text-xs font-bold text-amber-600 mt-2">อันดับที่ ${escapeHtml(r.rank)}</p>
-          </div>
-        </div>`;
-      });
-      html += `</div>`;
-      container.innerHTML = html;
-    });
-  },
-
-  async renderUsers() {
-    document.getElementById('pageTitle').textContent = 'ผู้ใช้งานระบบ';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('จัดการสิทธิ์และผู้ใช้งานระบบ', 'fa-users-gear');
-  },
-
-  async renderSettings() {
-    document.getElementById('pageTitle').textContent = 'ตั้งค่าระบบ';
-    document.getElementById('mainContent').innerHTML = Components.emptyState('ตั้งค่าเกณฑ์การตัดสินและปีการศึกษา', 'fa-gears');
-  },
-
-  async renderAuditLog() {
-    document.getElementById('pageTitle').textContent = 'ประวัติการใช้งาน';
-    document.getElementById('mainContent').innerHTML = Components.loadingSpinner();
-    try {
-      const logs = await API.call('getAuditLogs');
-      let html = `<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"><table class="w-full text-left text-xs">
-        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
-          <tr><th class="p-3">เวลา</th><th class="p-3">ผู้ใช้</th><th class="p-3">การกระทำ</th><th class="p-3">รายละเอียด</th></tr>
-        </thead><tbody class="divide-y divide-slate-100">`;
-      logs.forEach(l => {
-        html += `<tr>
-          <td class="p-3 text-slate-400 font-mono">${escapeHtml(l.timestamp)}</td>
-          <td class="p-3 font-bold text-slate-700">${escapeHtml(l.username)}</td>
-          <td class="p-3 font-semibold text-indigo-600">${escapeHtml(l.action)}</td>
-          <td class="p-3 text-slate-600">${escapeHtml(l.description)}</td>
-        </tr>`;
-      });
-      html += `</tbody></table></div>`;
-      document.getElementById('mainContent').innerHTML = html;
-    } catch (e) {}
-  },
-
-  async renderCertVerify() {
-    document.getElementById('pageTitle').textContent = 'ตรวจสอบเกียรติบัตร';
-    document.getElementById('mainContent').innerHTML = `
-      <div class="max-w-md mx-auto bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-center">
-        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full inline-flex items-center justify-center mb-3 text-xl">
-          <i class="fa-solid fa-qrcode"></i>
-        </div>
-        <h3 class="font-bold text-slate-800">ตรวจสอบความถูกต้องเกียรติบัตร</h3>
-        <div class="mt-4 space-y-3">
-          <input type="text" id="certNoInput" placeholder="รหัสเกียรติบัตร (เช่น ART74-2569-000001)" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-xs text-center font-mono">
-          <button onclick="Views.doVerifyCert()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition">ตรวจสอบเอกสาร</button>
-        </div>
-      </div>
-    `;
-  },
-
-  async doVerifyCert() {
-    const certNo = document.getElementById('certNoInput').value.trim();
-    if (!certNo) return;
-    try {
-      const res = await API.call('verifyCertificate', { certificateNo: certNo });
-      Swal.fire({
-        icon: 'success',
-        title: 'พบเกียรติบัตรถูกต้อง',
-        html: `<p class="text-sm"><b>ผู้รับ:</b> ${escapeHtml(res.recipientName)}<br><b>กิจกรรม:</b> ${escapeHtml(res.activityName)}<br><b>โรงเรียน:</b> ${escapeHtml(res.schoolName)}</p>`
-      });
-    } catch (e) {}
-  },
-
-  async doGlobalSearch() {
-    const kw = document.getElementById('globalSearchInput').value.trim();
-    if (!kw) return;
-    try {
-      const results = await API.call('globalSearch', { keyword: kw });
-      if (results.length === 0) {
-        Swal.fire('ผลการค้นหา', 'ไม่พบข้อมูลที่ตรงกับคำค้นหา', 'info');
-        return;
-      }
-      let html = `<div class="space-y-2 text-left">`;
-      results.forEach(r => {
-        html += `<div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-          <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${escapeHtml(r.type)}</span>
-          <p class="font-bold text-slate-800 text-sm mt-1">${escapeHtml(r.title)}</p>
-          <p class="text-xs text-slate-400">${escapeHtml(r.subtitle)}</p>
-        </div>`;
-      });
-      html += `</div>`;
-      Components.openModal(`ผลการค้นหา "${escapeHtml(kw)}"`, html);
-    } catch (e) {}
-  }
-};
 /**
  * ============================================================================
- * VIEWS — SCORING (Committee/Admin)
+ * VIEWS — ACTIVITIES (Admin: manage competition items)
  * ============================================================================
  */
-Views.renderScoring = async function () {
-  document.getElementById('pageTitle').textContent = 'บันทึกคะแนนและประมวลผลการแข่งขัน';
+Views.renderActivities = async function () {
+  document.getElementById('pageTitle').textContent = 'จัดการรายการแข่งขัน';
   const container = document.getElementById('mainContent');
-  container.innerHTML = Components.skeletonTable(3);
-
+  container.innerHTML = Components.skeletonTable();
   try {
     const activities = await API.call('getActivities');
-    container.innerHTML = `
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6">
-        <label class="block text-sm font-medium text-slate-700 mb-2">เลือกรายการแข่งขันเพื่อบันทึกคะแนน</label>
-        <select id="scoreActivitySelect" onchange="Views.loadActivityScoring(this.value)" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-          <option value="">-- เลือกรายการแข่งขัน --</option>
-          ${activities.filter(a => a.status !== 'COMPLETED').map(a => `<option value="${a.activityId}" data-max="${a.scoreType}">${a.activityCode} - ${a.activityName} (${a.level})</option>`).join('')}
-        </select>
-      </div>
-      <div id="scoringTableContainer"></div>
-    `;
+    this._activityCache = activities;
+    TableUX.init('acts', activities);
+    this.paintActivitiesTable(1);
   } catch (e) {
-    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการดึงรายการแข่งขัน');
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
   }
 };
 
-Views.loadActivityScoring = async function (activityId) {
-  if (!activityId) { document.getElementById('scoringTableContainer').innerHTML = ''; return; }
-  const container = document.getElementById('scoringTableContainer');
-  container.innerHTML = Components.skeletonTable(3);
-
-  const sel = document.getElementById('scoreActivitySelect');
-  const maxScore = sel.options[sel.selectedIndex].dataset.max || 100;
-
-  const [regs, scores] = await Promise.all([API.call('getRegistrations'), API.call('getResultsByActivity', { activityId })]);
-  const filtered = regs.filter(r => r.activityId === activityId && r.status === 'APPROVED');
-  const scoreMap = {}; scores.forEach(s => scoreMap[s.registrationId] = s);
-
+Views.paintActivitiesTable = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('acts', page);
+  const rows = TableUX.paginate('acts');
   let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchActs(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="exportTableToCSV(Views._activityCache, 'activities')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-file-csv"></i> Export
+        </button>
+        <button onclick="Views.openActivityModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> เพิ่มรายการแข่งขัน
+        </button>
+      </div>
+    </div>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
-          <tr><th class="p-4">โรงเรียน</th><th class="p-4">คะแนนดิบ (0-${maxScore})</th><th class="p-4">หักคะแนน</th>
-          <th class="p-4 text-center">คะแนนสุทธิ / อันดับ</th><th class="p-4 text-center">สถานะ</th><th class="p-4 text-center">จัดการ</th></tr>
+          <tr>
+            <th class="p-4">รหัส</th><th class="p-4">ชื่อรายการ</th><th class="p-4">หมวด/ระดับ</th>
+            <th class="p-4 text-center">นักเรียน</th><th class="p-4 text-center">ครู</th>
+            <th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th>
+          </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
   `;
-
-  if (filtered.length === 0) {
-    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ไม่พบรายการที่ได้รับการอนุมัติในกิจกรรมนี้')}</td></tr>`;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="7" class="p-0">${Components.emptyState('ยังไม่มีรายการแข่งขัน')}</td></tr>`;
   } else {
-    filtered.forEach(r => {
-      const sc = scoreMap[r.registrationId];
-      const locked = sc && sc.status === 'LOCKED';
+    rows.forEach(a => {
       html += `
-        <tr>
-          <td class="p-4 font-semibold text-slate-800">${r.schoolName}</td>
-          <td class="p-4"><input type="number" step="0.01" id="score_${r.registrationId}" value="${sc ? sc.score : ''}" ${locked ? 'disabled' : ''} class="w-24 p-2 border rounded-lg" placeholder="0-${maxScore}"></td>
-          <td class="p-4"><input type="number" step="0.01" id="deduct_${r.registrationId}" value="${sc ? sc.deduction : 0}" ${locked ? 'disabled' : ''} class="w-24 p-2 border rounded-lg"></td>
-          <td class="p-4 text-center">${sc ? `<b>${sc.finalScore}</b> ${Components.medalBadge(sc.medal)} <span class="text-xs text-slate-400">อันดับ ${sc.rank}</span>` : '-'}</td>
-          <td class="p-4 text-center">${sc ? Components.statusBadge(sc.status === 'LOCKED' ? 'INACTIVE' : 'ACTIVE') : '-'}</td>
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-mono text-indigo-600">${escapeHtml(a.activityCode)}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(a.activityName)}<div class="text-xs text-slate-400">${escapeHtml(a.competitionType)}</div></td>
+          <td class="p-4 text-slate-600">${escapeHtml(a.category)}<div class="text-xs text-slate-400">${escapeHtml(a.level)}</div></td>
+          <td class="p-4 text-center">${escapeHtml(a.minStudents)}-${escapeHtml(a.maxStudents)}</td>
+          <td class="p-4 text-center">${escapeHtml(a.minTeachers)}-${escapeHtml(a.maxTeachers)}</td>
+          <td class="p-4">${Components.statusBadge(a.status)}</td>
           <td class="p-4 text-center whitespace-nowrap">
-            ${!locked ? `<button onclick="Views.saveScoreSubmit('${r.registrationId}', '${activityId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">บันทึก</button>` : ''}
-            ${sc && !locked ? `<button onclick="Views.lockScore('${sc.scoreId}', '${activityId}')" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold ml-1"><i class="fa-solid fa-lock"></i></button>` : ''}
-            ${sc && locked ? `<button onclick="Views.reopenScore('${sc.scoreId}', '${activityId}')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-lock-open"></i> ปลดล็อก</button>` : ''}
+            <button onclick="Views.openActivityModal('${a.activityId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="Views.deleteActivity('${a.activityId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="ลบ"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>`;
     });
   }
-  html += `</tbody></table></div></div>`;
+  html += `</tbody></table></div>${TableUX.paginationControls('acts', 'Views.paintActivitiesTable')}</div>`;
   container.innerHTML = html;
 };
 
-Views.saveScoreSubmit = async function (regId, actId) {
-  const score = document.getElementById(`score_${regId}`).value;
-  const deduction = document.getElementById(`deduct_${regId}`).value;
-  if (score === '') { Swal.fire('แจ้งเตือน', 'กรุณากรอกคะแนน', 'warning'); return; }
+Views.searchActs = function (q) { TableUX.search('acts', q); this.paintActivitiesTable(1); };
+
+Views.openActivityModal = function (actId) {
+  const a = actId ? this._activityCache.find(x => x.activityId === actId) : null;
+  const html = `
+    <form onsubmit="Views.submitActivityForm(event, '${actId || ''}')" class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">รหัสรายการ *</label>
+          <input id="actCode" value="${a ? escapeHtml(a.activityCode) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">สถานะ</label>
+          <select id="actStatus" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+            <option value="ACTIVE" ${!a || a.status === 'ACTIVE' ? 'selected' : ''}>เปิดใช้งาน</option>
+            <option value="INACTIVE" ${a && a.status === 'INACTIVE' ? 'selected' : ''}>ปิดใช้งาน</option>
+          </select></div>
+      </div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อรายการแข่งขัน *</label>
+        <input id="actName" value="${a ? escapeHtml(a.activityName) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่ *</label>
+          <input id="actCategory" value="${a ? escapeHtml(a.category) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ระดับชั้น *</label>
+          <input id="actLevel" value="${a ? escapeHtml(a.level) : ''}" required placeholder="เช่น ป.1-3" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ช่วงวัย</label>
+          <input id="actAge" value="${a ? escapeHtml(a.ageGroup || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ประเภทการแข่งขัน</label>
+          <select id="actType" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+            ${['เดี่ยว', 'คู่', 'ทีม', 'กลุ่ม'].map(t => `<option ${a && a.competitionType === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+        <div><label class="block text-xs font-medium text-slate-700 mb-1">นร. ต่ำสุด</label>
+          <input id="actMinS" type="number" min="0" value="${a ? a.minStudents : 1}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-xs font-medium text-slate-700 mb-1">นร. สูงสุด</label>
+          <input id="actMaxS" type="number" min="0" value="${a ? a.maxStudents : 1}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-xs font-medium text-slate-700 mb-1">ครู ต่ำสุด</label>
+          <input id="actMinT" type="number" min="0" value="${a ? a.minTeachers : 1}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-xs font-medium text-slate-700 mb-1">ครู สูงสุด</label>
+          <input id="actMaxT" type="number" min="0" value="${a ? a.maxTeachers : 1}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">คะแนนเต็ม</label>
+        <input id="actScoreType" type="number" value="${a ? a.scoreType : 100}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">เกณฑ์การให้คะแนน</label>
+        <textarea id="actCriteria" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">${a ? escapeHtml(a.criteria || '') : ''}</textarea></div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกรายการแข่งขัน
+      </button>
+    </form>
+  `;
+  Components.openModal(a ? 'แก้ไขรายการ: ' + a.activityName : 'เพิ่มรายการแข่งขันใหม่', html);
+};
+
+Views.submitActivityForm = async function (event, actId) {
+  event.preventDefault();
+  const payload = {
+    activityId: actId || undefined,
+    activityCode: document.getElementById('actCode').value,
+    activityName: document.getElementById('actName').value,
+    category: document.getElementById('actCategory').value,
+    level: document.getElementById('actLevel').value,
+    ageGroup: document.getElementById('actAge').value,
+    competitionType: document.getElementById('actType').value,
+    minStudents: document.getElementById('actMinS').value,
+    maxStudents: document.getElementById('actMaxS').value,
+    minTeachers: document.getElementById('actMinT').value,
+    maxTeachers: document.getElementById('actMaxT').value,
+    scoreType: document.getElementById('actScoreType').value,
+    criteria: document.getElementById('actCriteria').value,
+    status: document.getElementById('actStatus').value
+  };
   try {
-    await API.call('saveScore', { registrationId: regId, activityId: actId, score, deduction });
-    Components.toast('success', 'บันทึกคะแนนเรียบร้อยแล้ว');
-    this.loadActivityScoring(actId);
+    await API.call('saveActivity', payload);
+    Components.closeModal();
+    Components.toast('success', 'บันทึกรายการแข่งขันสำเร็จ');
+    this.renderActivities();
   } catch (e) {}
 };
 
-Views.lockScore = async function (scoreId, actId) {
-  const confirm = await Swal.fire({ title: 'ล็อกคะแนนนี้?', text: 'หลังล็อกแล้วจะแก้ไขไม่ได้ (ยกเว้น Super Admin ปลดล็อก)', icon: 'question', showCancelButton: true, confirmButtonText: 'ล็อก' });
+Views.deleteActivity = async function (actId) {
+  const confirm = await Swal.fire({ title: 'ยืนยันลบรายการแข่งขัน?', text: 'ไม่สามารถกู้คืนได้ภายหลัง', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบรายการ', confirmButtonColor: '#dc2626' });
   if (!confirm.isConfirmed) return;
-  try { await API.call('lockScore', { scoreId }); Components.toast('success', 'ล็อกคะแนนสำเร็จ'); this.loadActivityScoring(actId); } catch (e) {}
+  try {
+    await API.call('deleteActivity', { activityId: actId });
+    Components.toast('success', 'ลบรายการแข่งขันสำเร็จ');
+    this.renderActivities();
+  } catch (e) {}
 };
-
-Views.reopenScore = async function (scoreId, actId) {
-  try { await API.call('reopenScore', { scoreId }); Components.toast('success', 'ปลดล็อกคะแนนสำเร็จ'); this.loadActivityScoring(actId); } catch (e) {}
-};
-cat >> /home/claude/index.html << 'PARTEOF'
 
 /**
  * ============================================================================
- * VIEWS — SCHOOLS MANAGEMENT (Admin)
+ * VIEWS — SCHOOLS (Admin: manage schools & their login accounts)
  * ============================================================================
  */
 Views.renderSchools = async function () {
@@ -1417,205 +1276,871 @@ Views.renderSchools = async function () {
     this._schoolCache = schools;
     TableUX.init('schools', schools);
     this.paintSchoolsTable(1);
-  } catch (e) { container.innerHTML = Components.errorState('ไม่สามารถโหลดข้อมูลโรงเรียนได้'); }
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
 };
 
 Views.paintSchoolsTable = function (page) {
+  const container = document.getElementById('mainContent');
   if (page) TableUX.setPage('schools', page);
   const rows = TableUX.paginate('schools');
   let html = `
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
       <div class="relative w-full md:w-80">
-        <input type="text" placeholder="ค้นหาโรงเรียน..." oninput="TableUX.search('schools', this.value); Views.paintSchoolsTable(1)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchSchools(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
       <div class="flex gap-2">
-        <button onclick="exportTableToCSV(Views._schoolCache, 'schools')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-file-csv"></i> Export</button>
-        <button onclick="Views.openSchoolModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md"><i class="fa-solid fa-plus"></i> เพิ่มโรงเรียน</button>
+        <button onclick="exportTableToCSV(Views._schoolCache, 'schools')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-file-csv"></i> Export
+        </button>
+        <button onclick="Views.openSchoolModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> เพิ่มโรงเรียน
+        </button>
       </div>
     </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 border-b border-slate-100 text-slate-600"><tr>
-        <th class="p-4">รหัส</th><th class="p-4">ชื่อโรงเรียน</th><th class="p-4">ผู้บริหาร</th><th class="p-4">Username</th><th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th>
-      </tr></thead><tbody class="divide-y divide-slate-100">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">รหัส</th><th class="p-4">ชื่อโรงเรียน</th><th class="p-4">ผู้บริหาร</th><th class="p-4">Username</th><th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
   `;
   if (rows.length === 0) {
-    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีข้อมูลโรงเรียน', 'fa-school')}</td></tr>`;
+    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีข้อมูลโรงเรียน')}</td></tr>`;
   } else {
     rows.forEach(s => {
-      html += `<tr class="hover:bg-slate-50">
-        <td class="p-4 font-mono">${s.schoolCode}</td>
-        <td class="p-4 font-semibold text-slate-800">${s.schoolName}</td>
-        <td class="p-4 text-slate-600">${s.directorName || '-'}</td>
-        <td class="p-4 font-mono text-xs text-slate-500">${s.username}</td>
-        <td class="p-4">${Components.statusBadge(s.status)}</td>
-        <td class="p-4 text-center whitespace-nowrap">
-          <button onclick='Views.openSchoolModal(${JSON.stringify(s).replace(/'/g, "&#39;")})' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fa-solid fa-pen"></i></button>
-          <button onclick="Views.toggleSchoolStatus('${s.schoolId}', '${s.status}')" class="p-2 ${s.status === 'ACTIVE' ? 'text-red-500 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50'} rounded-lg"><i class="fa-solid ${s.status === 'ACTIVE' ? 'fa-ban' : 'fa-check'}"></i></button>
-        </td>
-      </tr>`;
+      html += `
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-mono text-indigo-600">${escapeHtml(s.schoolCode)}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(s.schoolName)}<div class="text-xs text-slate-400">${escapeHtml(s.shortName || '')}</div></td>
+          <td class="p-4 text-slate-600">${escapeHtml(s.directorName || '-')}</td>
+          <td class="p-4 font-mono text-xs text-slate-500">${escapeHtml(s.username)}</td>
+          <td class="p-4">${Components.statusBadge(s.status)}</td>
+          <td class="p-4 text-center whitespace-nowrap">
+            <button onclick="Views.openSchoolModal('${s.schoolId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="Views.toggleSchoolStatus('${s.schoolId}', '${s.status}')" class="p-2 ${s.status === 'ACTIVE' ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'} rounded-lg" title="${s.status === 'ACTIVE' ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}">
+              <i class="fa-solid ${s.status === 'ACTIVE' ? 'fa-ban' : 'fa-check'}"></i>
+            </button>
+          </td>
+        </tr>`;
     });
   }
   html += `</tbody></table></div>${TableUX.paginationControls('schools', 'Views.paintSchoolsTable')}</div>`;
-  document.getElementById('mainContent').innerHTML = html;
+  container.innerHTML = html;
 };
 
-Views.openSchoolModal = function (school) {
+Views.searchSchools = function (q) { TableUX.search('schools', q); this.paintSchoolsTable(1); };
+
+Views.openSchoolModal = function (schoolId) {
+  const s = schoolId ? this._schoolCache.find(x => x.schoolId === schoolId) : null;
   const html = `
-    <form onsubmit="Views.submitSchoolForm(event, '${school ? school.schoolId : ''}')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">รหัสโรงเรียน *</label><input id="f_schoolCode" required value="${school ? school.schoolCode : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ชื่อโรงเรียน *</label><input id="f_schoolName" required value="${school ? school.schoolName : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ชื่อย่อ</label><input id="f_shortName" value="${school ? school.shortName || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ผู้อำนวยการ</label><input id="f_directorName" value="${school ? school.directorName || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div class="md:col-span-2"><label class="block text-xs font-medium text-slate-600 mb-1">ที่อยู่</label><input id="f_address" value="${school ? school.address || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">โทรศัพท์</label><input id="f_phone" value="${school ? school.phone || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">อีเมล</label><input id="f_email" type="email" value="${school ? school.email || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">Username *</label><input id="f_username" required value="${school ? school.username : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">รหัสผ่าน${school ? ' (เว้นว่างถ้าไม่เปลี่ยน)' : ' *'}</label><input id="f_password" type="password" ${school ? '' : 'required'} class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div class="md:col-span-2"><button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button></div>
+    <form onsubmit="Views.submitSchoolForm(event, '${schoolId || ''}')" class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">รหัสโรงเรียน *</label>
+          <input id="schCode" value="${s ? escapeHtml(s.schoolCode) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อย่อ</label>
+          <input id="schShort" value="${s ? escapeHtml(s.shortName || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อโรงเรียน *</label>
+        <input id="schName" value="${s ? escapeHtml(s.schoolName) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ผู้บริหารสถานศึกษา</label>
+        <input id="schDirector" value="${s ? escapeHtml(s.directorName || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ที่อยู่</label>
+        <textarea id="schAddress" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">${s ? escapeHtml(s.address || '') : ''}</textarea></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">โทรศัพท์</label>
+          <input id="schPhone" value="${s ? escapeHtml(s.phone || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+          <input id="schEmail" type="email" value="${s ? escapeHtml(s.email || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 pt-2 border-t">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">Username เข้าระบบ *</label>
+          <input id="schUsername" value="${s ? escapeHtml(s.username) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">${s ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
+          <input id="schPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลโรงเรียน
+      </button>
     </form>
   `;
-  Components.openModal(school ? 'แก้ไขข้อมูลโรงเรียน' : 'เพิ่มโรงเรียนใหม่', html);
+  Components.openModal(s ? 'แก้ไขโรงเรียน: ' + s.schoolName : 'เพิ่มโรงเรียนใหม่', html);
 };
 
 Views.submitSchoolForm = async function (event, schoolId) {
   event.preventDefault();
   const payload = {
     schoolId: schoolId || undefined,
-    schoolCode: document.getElementById('f_schoolCode').value, schoolName: document.getElementById('f_schoolName').value,
-    shortName: document.getElementById('f_shortName').value, directorName: document.getElementById('f_directorName').value,
-    address: document.getElementById('f_address').value, phone: document.getElementById('f_phone').value,
-    email: document.getElementById('f_email').value, username: document.getElementById('f_username').value,
-    password: document.getElementById('f_password').value
+    schoolCode: document.getElementById('schCode').value,
+    shortName: document.getElementById('schShort').value,
+    schoolName: document.getElementById('schName').value,
+    directorName: document.getElementById('schDirector').value,
+    address: document.getElementById('schAddress').value,
+    phone: document.getElementById('schPhone').value,
+    email: document.getElementById('schEmail').value,
+    username: document.getElementById('schUsername').value,
+    password: document.getElementById('schPassword').value
   };
   try {
     await API.call('saveSchool', payload);
-    Components.closeModal(); Components.toast('success', 'บันทึกข้อมูลโรงเรียนสำเร็จ');
+    Components.closeModal();
+    Components.toast('success', 'บันทึกข้อมูลโรงเรียนสำเร็จ');
     this.renderSchools();
   } catch (e) {}
 };
 
 Views.toggleSchoolStatus = async function (schoolId, currentStatus) {
   const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  try { await API.call('setSchoolStatus', { schoolId, status: newStatus }); Components.toast('success', 'อัปเดตสถานะสำเร็จ'); this.renderSchools(); } catch (e) {}
+  const confirm = await Swal.fire({ title: newStatus === 'INACTIVE' ? 'ปิดใช้งานโรงเรียนนี้?' : 'เปิดใช้งานโรงเรียนนี้?', icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยัน' });
+  if (!confirm.isConfirmed) return;
+  try {
+    await API.call('setSchoolStatus', { schoolId, status: newStatus });
+    Components.toast('success', 'อัปเดตสถานะโรงเรียนสำเร็จ');
+    this.renderSchools();
+  } catch (e) {}
 };
 
 /**
  * ============================================================================
- * VIEWS — ACTIVITIES MANAGEMENT (Admin)
+ * VIEWS — JUDGES (Admin: manage judge/committee accounts)
  * ============================================================================
  */
-Views.renderActivities = async function () {
-  document.getElementById('pageTitle').textContent = 'จัดการรายการแข่งขัน';
+Views.renderJudges = async function () {
+  document.getElementById('pageTitle').textContent = 'จัดการกรรมการตัดสิน';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const judges = await API.call('getJudges');
+    this._judgeCache = judges;
+    TableUX.init('judges', judges);
+    this.paintJudgesTable(1);
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintJudgesTable = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('judges', page);
+  const rows = TableUX.paginate('judges');
+  let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchJudges(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+      <button onclick="Views.openJudgeModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        <i class="fa-solid fa-plus"></i> เพิ่มกรรมการ
+      </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">ชื่อ-สกุล</th><th class="p-4">ตำแหน่ง</th><th class="p-4">หน่วยงาน</th><th class="p-4">Username</th><th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+  `;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีข้อมูลกรรมการ')}</td></tr>`;
+  } else {
+    rows.forEach(j => {
+      html += `
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(j.name)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(j.position || '-')}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(j.organization || '-')}</td>
+          <td class="p-4 font-mono text-xs text-slate-500">${escapeHtml(j.username)}</td>
+          <td class="p-4">${Components.statusBadge(j.status)}</td>
+          <td class="p-4 text-center"><button onclick="Views.openJudgeModal('${j.judgeId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button></td>
+        </tr>`;
+    });
+  }
+  html += `</tbody></table></div>${TableUX.paginationControls('judges', 'Views.paintJudgesTable')}</div>`;
+  container.innerHTML = html;
+};
+
+Views.searchJudges = function (q) { TableUX.search('judges', q); this.paintJudgesTable(1); };
+
+Views.openJudgeModal = function (judgeId) {
+  const j = judgeId ? this._judgeCache.find(x => x.judgeId === judgeId) : null;
+  const html = `
+    <form onsubmit="Views.submitJudgeForm(event, '${judgeId || ''}')" class="space-y-4">
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ-สกุล *</label>
+        <input id="jName" value="${j ? escapeHtml(j.name) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ตำแหน่ง</label>
+          <input id="jPosition" value="${j ? escapeHtml(j.position || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน</label>
+          <input id="jOrg" value="${j ? escapeHtml(j.organization || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">โทรศัพท์</label>
+          <input id="jPhone" value="${j ? escapeHtml(j.phone || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+          <input id="jEmail" type="email" value="${j ? escapeHtml(j.email || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      ${!j ? `<div><label class="block text-sm font-medium text-slate-700 mb-1">Username เข้าระบบ</label>
+        <input id="jUsername" placeholder="เว้นว่างให้ระบบสุ่มให้" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>` : ''}
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">${j ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
+        <input id="jPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลกรรมการ
+      </button>
+    </form>
+  `;
+  Components.openModal(j ? 'แก้ไขกรรมการ: ' + j.name : 'เพิ่มกรรมการใหม่', html);
+};
+
+Views.submitJudgeForm = async function (event, judgeId) {
+  event.preventDefault();
+  const payload = {
+    judgeId: judgeId || undefined,
+    name: document.getElementById('jName').value,
+    position: document.getElementById('jPosition').value,
+    organization: document.getElementById('jOrg').value,
+    phone: document.getElementById('jPhone').value,
+    email: document.getElementById('jEmail').value,
+    password: document.getElementById('jPassword').value
+  };
+  const usernameEl = document.getElementById('jUsername');
+  if (usernameEl) payload.username = usernameEl.value;
+  try {
+    await API.call('saveJudge', payload);
+    Components.closeModal();
+    Components.toast('success', 'บันทึกข้อมูลกรรมการสำเร็จ');
+    this.renderJudges();
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — USERS (Super Admin only: manage system accounts)
+ * ============================================================================
+ */
+Views.renderUsers = async function () {
+  document.getElementById('pageTitle').textContent = 'จัดการผู้ใช้งานระบบ';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const users = await API.call('getUsers');
+    this._userCache = users;
+    TableUX.init('users', users);
+    this.paintUsersTable(1);
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintUsersTable = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('users', page);
+  const rows = TableUX.paginate('users');
+  const roleLabel = r => App.getRoleBadgeText(r);
+  let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchUsers(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+      <button onclick="Views.openUserModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        <i class="fa-solid fa-plus"></i> เพิ่มผู้ใช้งาน
+      </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">Username</th><th class="p-4">ชื่อที่แสดง</th><th class="p-4">สิทธิ์</th><th class="p-4">เข้าใช้ล่าสุด</th><th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+  `;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีผู้ใช้งาน')}</td></tr>`;
+  } else {
+    rows.forEach(u => {
+      html += `
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-mono text-indigo-600">${escapeHtml(u.username)}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(u.displayName)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(roleLabel(u.role))}</td>
+          <td class="p-4 text-xs text-slate-400">${Components.formatDateThai(u.lastLogin)}</td>
+          <td class="p-4">${Components.statusBadge(u.status)}</td>
+          <td class="p-4 text-center whitespace-nowrap">
+            <button onclick="Views.openUserModal('${u.userId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            ${u.role !== 'SUPER_ADMIN' ? `<button onclick="Views.toggleUserStatus('${u.userId}', '${u.status}')" class="p-2 ${u.status === 'ACTIVE' ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'} rounded-lg" title="เปลี่ยนสถานะ"><i class="fa-solid ${u.status === 'ACTIVE' ? 'fa-ban' : 'fa-check'}"></i></button>` : ''}
+          </td>
+        </tr>`;
+    });
+  }
+  html += `</tbody></table></div>${TableUX.paginationControls('users', 'Views.paintUsersTable')}</div>`;
+  container.innerHTML = html;
+};
+
+Views.searchUsers = function (q) { TableUX.search('users', q); this.paintUsersTable(1); };
+
+Views.openUserModal = function (userId) {
+  const u = userId ? this._userCache.find(x => x.userId === userId) : null;
+  const roles = ['SUPER_ADMIN', 'ADMIN', 'COMMITTEE', 'VIEWER'];
+  const html = `
+    <form onsubmit="Views.submitUserForm(event, '${userId || ''}')" class="space-y-4">
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">Username *</label>
+        <input id="uUsername" value="${u ? escapeHtml(u.username) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อที่แสดง *</label>
+        <input id="uDisplay" value="${u ? escapeHtml(u.displayName) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">ระดับสิทธิ์ *</label>
+        <select id="uRole" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+          ${roles.map(r => `<option value="${r}" ${u && u.role === r ? 'selected' : ''}>${App.getRoleBadgeText(r)}</option>`).join('')}
+        </select></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">${u ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
+        <input id="uPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกผู้ใช้งาน
+      </button>
+    </form>
+  `;
+  Components.openModal(u ? 'แก้ไขผู้ใช้งาน: ' + u.username : 'เพิ่มผู้ใช้งานใหม่', html);
+};
+
+Views.submitUserForm = async function (event, userId) {
+  event.preventDefault();
+  const payload = {
+    userId: userId || undefined,
+    username: document.getElementById('uUsername').value,
+    displayName: document.getElementById('uDisplay').value,
+    role: document.getElementById('uRole').value,
+    password: document.getElementById('uPassword').value
+  };
+  try {
+    await API.call('saveUser', payload);
+    Components.closeModal();
+    Components.toast('success', 'บันทึกผู้ใช้งานสำเร็จ');
+    this.renderUsers();
+  } catch (e) {}
+};
+
+Views.toggleUserStatus = async function (userId, currentStatus) {
+  const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  const confirm = await Swal.fire({ title: 'เปลี่ยนสถานะผู้ใช้งานนี้?', icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยัน' });
+  if (!confirm.isConfirmed) return;
+  try {
+    await API.call('setUserStatus', { userId, status: newStatus });
+    Components.toast('success', 'อัปเดตสถานะสำเร็จ');
+    this.renderUsers();
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — SETTINGS (Super Admin only) + Database Setup Trigger
+ * ============================================================================
+ */
+Views.renderSettings = async function () {
+  document.getElementById('pageTitle').textContent = 'ตั้งค่าระบบ';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const settings = await API.call('getSettings');
+    this._settingsCache = settings;
+    this.paintSettings();
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintSettings = function () {
+  const container = document.getElementById('mainContent');
+  const rows = this._settingsCache;
+  let html = `
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h3 class="font-bold text-slate-800">ติดตั้ง / ตรวจสอบโครงสร้างฐานข้อมูล</h3>
+        <p class="text-xs text-slate-400 mt-1">สร้างชีตที่ขาดหายและปรับปรุงหัวตารางให้ครบ โดยไม่ลบข้อมูลเดิม (ปลอดภัยที่จะกดซ้ำได้)</p>
+      </div>
+      <button onclick="Views.runSetupDatabase()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold shadow-md flex-shrink-0">
+        <i class="fa-solid fa-database"></i> ตั้งค่าฐานข้อมูล
+      </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">คีย์</th><th class="p-4">ค่า</th><th class="p-4">คำอธิบาย</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+  `;
+  rows.forEach(s => {
+    html += `
+      <tr class="hover:bg-slate-50">
+        <td class="p-4 font-mono text-xs text-indigo-600">${escapeHtml(s.Key)}</td>
+        <td class="p-4"><input id="setval_${escapeHtml(s.Key)}" value="${escapeHtml(s.Value)}" class="w-full p-2 border border-slate-300 rounded-lg text-sm"></td>
+        <td class="p-4 text-xs text-slate-400">${escapeHtml(s.Description || '')}</td>
+        <td class="p-4 text-center"><button onclick="Views.saveOneSetting('${escapeHtml(s.Key)}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="บันทึก"><i class="fa-solid fa-floppy-disk"></i></button></td>
+      </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  container.innerHTML = html;
+};
+
+Views.saveOneSetting = async function (key) {
+  const value = document.getElementById('setval_' + key).value;
+  try {
+    await API.call('updateSetting', { key, value });
+    Components.toast('success', 'บันทึกการตั้งค่าสำเร็จ');
+  } catch (e) {}
+};
+
+Views.runSetupDatabase = async function () {
+  const confirm = await Swal.fire({ title: 'ยืนยันตั้งค่าฐานข้อมูล?', text: 'ระบบจะสร้างชีตที่ขาดหายและตรวจสอบหัวตาราง ข้อมูลเดิมจะไม่ถูกลบ', icon: 'question', showCancelButton: true, confirmButtonText: 'เริ่มตั้งค่า' });
+  if (!confirm.isConfirmed) return;
+  try {
+    await API.call('setupDatabase');
+    Components.toast('success', 'ตั้งค่าฐานข้อมูลสำเร็จ');
+    this.renderSettings();
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — SCHEDULES (Admin/Committee: manage competition timetable)
+ * ============================================================================
+ */
+Views.renderSchedules = async function () {
+  document.getElementById('pageTitle').textContent = 'ตารางการแข่งขัน';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const [schedules, activities] = await Promise.all([API.call('getSchedules'), API.call('getActivities')]);
+    this._scheduleCache = schedules;
+    this._activityCache = activities;
+    TableUX.init('sched', schedules);
+    this.paintSchedulesTable(1);
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintSchedulesTable = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('sched', page);
+  const rows = TableUX.paginate('sched');
+  let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchSched(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+      <button onclick="Views.openScheduleModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        <i class="fa-solid fa-plus"></i> เพิ่มตารางแข่งขัน
+      </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">รายการแข่งขัน</th><th class="p-4">วันที่</th><th class="p-4">เวลา</th><th class="p-4">สถานที่</th><th class="p-4">กรรมการ</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+  `;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีตารางการแข่งขัน')}</td></tr>`;
+  } else {
+    rows.forEach(s => {
+      html += `
+        <tr class="hover:bg-slate-50">
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(s.activityName)}<div class="text-xs text-slate-400">${escapeHtml(s.level)}</div></td>
+          <td class="p-4 text-slate-600">${escapeHtml(s.competitionDate)}</td>
+          <td class="p-4 text-slate-600 font-mono text-xs">${escapeHtml(s.startTime)} - ${escapeHtml(s.endTime)}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(s.venue)}${s.room ? ' / ' + escapeHtml(s.room) : ''}</td>
+          <td class="p-4 text-slate-600">${escapeHtml(s.judge || '-')}</td>
+          <td class="p-4 text-center whitespace-nowrap">
+            <button onclick="Views.openScheduleModal('${s.scheduleId}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="Views.deleteSchedule('${s.scheduleId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`;
+    });
+  }
+  html += `</tbody></table></div>${TableUX.paginationControls('sched', 'Views.paintSchedulesTable')}</div>`;
+  container.innerHTML = html;
+};
+
+Views.searchSched = function (q) { TableUX.search('sched', q); this.paintSchedulesTable(1); };
+
+Views.openScheduleModal = function (scheduleId) {
+  const s = scheduleId ? this._scheduleCache.find(x => x.scheduleId === scheduleId) : null;
+  const html = `
+    <form onsubmit="Views.submitScheduleForm(event, '${scheduleId || ''}')" class="space-y-4">
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">รายการแข่งขัน *</label>
+        <select id="schActivity" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+          <option value="">-- เลือกรายการแข่งขัน --</option>
+          ${this._activityCache.map(a => `<option value="${a.activityId}" ${s && s.activityId === a.activityId ? 'selected' : ''}>${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)}</option>`).join('')}
+        </select></div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">วันที่ *</label>
+          <input id="schDate" type="date" value="${s ? escapeHtml(s.competitionDate) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">เวลาเริ่ม *</label>
+          <input id="schStart" type="time" value="${s ? escapeHtml(s.startTime) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">เวลาสิ้นสุด *</label>
+          <input id="schEnd" type="time" value="${s ? escapeHtml(s.endTime) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">สถานที่ *</label>
+          <input id="schVenue" value="${s ? escapeHtml(s.venue) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ห้อง</label>
+          <input id="schRoom" value="${s ? escapeHtml(s.room || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">กรรมการผู้รับผิดชอบ</label>
+        <input id="schJudge" value="${s ? escapeHtml(s.judge || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div><label class="block text-sm font-medium text-slate-700 mb-1">หมายเหตุ</label>
+        <textarea id="schNotes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">${s ? escapeHtml(s.notes || '') : ''}</textarea></div>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกตารางการแข่งขัน
+      </button>
+    </form>
+  `;
+  Components.openModal(s ? 'แก้ไขตารางการแข่งขัน' : 'เพิ่มตารางการแข่งขันใหม่', html);
+};
+
+Views.submitScheduleForm = async function (event, scheduleId) {
+  event.preventDefault();
+  const payload = {
+    scheduleId: scheduleId || undefined,
+    activityId: document.getElementById('schActivity').value,
+    competitionDate: document.getElementById('schDate').value,
+    startTime: document.getElementById('schStart').value,
+    endTime: document.getElementById('schEnd').value,
+    venue: document.getElementById('schVenue').value,
+    room: document.getElementById('schRoom').value,
+    judge: document.getElementById('schJudge').value,
+    notes: document.getElementById('schNotes').value
+  };
+  try {
+    await API.call('saveSchedule', payload);
+    Components.closeModal();
+    Components.toast('success', 'บันทึกตารางการแข่งขันสำเร็จ');
+    this.renderSchedules();
+  } catch (e) {}
+};
+
+Views.deleteSchedule = async function (scheduleId) {
+  const confirm = await Swal.fire({ title: 'ยืนยันลบตารางนี้?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', confirmButtonColor: '#dc2626' });
+  if (!confirm.isConfirmed) return;
+  try {
+    await API.call('deleteSchedule', { scheduleId });
+    Components.toast('success', 'ลบตารางการแข่งขันสำเร็จ');
+    this.renderSchedules();
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — SCORING (Admin/Committee: enter & lock scores per activity)
+ * ============================================================================
+ */
+Views.renderScoring = async function () {
+  document.getElementById('pageTitle').textContent = 'บันทึกคะแนนการแข่งขัน';
   const container = document.getElementById('mainContent');
   container.innerHTML = Components.skeletonTable();
   try {
     const activities = await API.call('getActivities');
     this._activityCache = activities;
-    TableUX.init('activities', activities);
-    this.paintActivitiesTable(1);
-  } catch (e) { container.innerHTML = Components.errorState('ไม่สามารถโหลดรายการแข่งขันได้'); }
-};
-
-Views.paintActivitiesTable = function (page) {
-  if (page) TableUX.setPage('activities', page);
-  const rows = TableUX.paginate('activities');
-  let html = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
-      <div class="relative w-full md:w-80">
-        <input type="text" placeholder="ค้นหารายการแข่งขัน..." oninput="TableUX.search('activities', this.value); Views.paintActivitiesTable(1)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+    container.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+        <label class="block text-sm font-medium text-slate-700 mb-2">เลือกรายการแข่งขันเพื่อบันทึกคะแนน</label>
+        <select id="scoreActivitySelect" onchange="Views.loadScoringActivity(this.value)" class="w-full md:w-96 p-3 border border-slate-300 rounded-xl text-sm">
+          <option value="">-- เลือกรายการแข่งขัน --</option>
+          ${activities.map(a => `<option value="${a.activityId}">${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)} (${escapeHtml(a.level)})</option>`).join('')}
+        </select>
       </div>
-      <div class="flex gap-2">
-        <button onclick="exportTableToCSV(Views._activityCache, 'activities')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-file-csv"></i> Export</button>
-        <button onclick="Views.openActivityModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md"><i class="fa-solid fa-plus"></i> เพิ่มรายการ</button>
-      </div>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 border-b border-slate-100 text-slate-600"><tr>
-        <th class="p-4">รหัส</th><th class="p-4">ชื่อรายการ</th><th class="p-4">ระดับ</th><th class="p-4">ประเภท</th><th class="p-4 text-center">จำนวน นร./ครู</th><th class="p-4">สถานะ</th><th class="p-4 text-center">จัดการ</th>
-      </tr></thead><tbody class="divide-y divide-slate-100">
-  `;
-  if (rows.length === 0) {
-    html += `<tr><td colspan="7" class="p-0">${Components.emptyState('ยังไม่มีรายการแข่งขัน', 'fa-list-check')}</td></tr>`;
-  } else {
-    rows.forEach(a => {
-      html += `<tr class="hover:bg-slate-50">
-        <td class="p-4 font-mono">${a.activityCode}</td>
-        <td class="p-4 font-semibold text-slate-800">${a.activityName}<div class="text-xs text-slate-400">${a.category}</div></td>
-        <td class="p-4">${a.level}</td><td class="p-4">${a.competitionType}</td>
-        <td class="p-4 text-center text-xs">${a.minStudents}-${a.maxStudents} / ${a.minTeachers}-${a.maxTeachers}</td>
-        <td class="p-4">${Components.statusBadge(a.status === 'COMPLETED' ? 'COMPLETED' : (a.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'))}</td>
-        <td class="p-4 text-center whitespace-nowrap">
-          <button onclick='Views.openActivityModal(${JSON.stringify(a).replace(/'/g, "&#39;")})' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fa-solid fa-pen"></i></button>
-          <button onclick="Views.deleteActivityConfirm('${a.activityId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>`;
-    });
+      <div id="scoringArea"></div>
+    `;
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
   }
-  html += `</tbody></table></div>${TableUX.paginationControls('activities', 'Views.paintActivitiesTable')}</div>`;
-  document.getElementById('mainContent').innerHTML = html;
 };
 
-Views.openActivityModal = function (a) {
-  const html = `
-    <form onsubmit="Views.submitActivityForm(event, '${a ? a.activityId : ''}')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">รหัสรายการ *</label><input id="a_code" required value="${a ? a.activityCode : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ชื่อรายการ *</label><input id="a_name" required value="${a ? a.activityName : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">หมวดหมู่ *</label><input id="a_category" required value="${a ? a.category : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ระดับชั้น *</label><input id="a_level" required value="${a ? a.level : ''}" placeholder="เช่น ป.4-6" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ช่วงอายุ</label><input id="a_ageGroup" value="${a ? a.ageGroup || '' : ''}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ประเภทการแข่งขัน</label>
-        <select id="a_competitionType" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm">
-          ${['เดี่ยว', 'คู่', 'ทีม', 'กลุ่ม'].map(t => `<option ${a && a.competitionType === t ? 'selected' : ''}>${t}</option>`).join('')}
-        </select>
-      </div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">นักเรียนต่ำสุด *</label><input id="a_minStudents" type="number" min="0" required value="${a ? a.minStudents : 1}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">นักเรียนสูงสุด *</label><input id="a_maxStudents" type="number" min="0" required value="${a ? a.maxStudents : 1}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ครูต่ำสุด *</label><input id="a_minTeachers" type="number" min="0" required value="${a ? a.minTeachers : 1}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">ครูสูงสุด *</label><input id="a_maxTeachers" type="number" min="0" required value="${a ? a.maxTeachers : 1}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">คะแนนเต็ม</label><input id="a_scoreType" type="number" value="${a ? a.scoreType : 100}" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm"></div>
-      <div><label class="block text-xs font-medium text-slate-600 mb-1">สถานะ</label>
-        <select id="a_status" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm">
-          <option value="ACTIVE" ${a && a.status === 'ACTIVE' ? 'selected' : ''}>ใช้งาน</option>
-          <option value="INACTIVE" ${a && a.status === 'INACTIVE' ? 'selected' : ''}>ปิดใช้งาน</option>
-        </select>
-      </div>
-      <div class="md:col-span-2"><label class="block text-xs font-medium text-slate-600 mb-1">เกณฑ์การให้คะแนน</label><textarea id="a_criteria" rows="2" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm">${a ? a.criteria || '' : ''}</textarea></div>
-      <div class="md:col-span-2"><button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button></div>
-    </form>
-  `;
-  Components.openModal(a ? 'แก้ไขรายการแข่งขัน' : 'เพิ่มรายการแข่งขันใหม่', html);
-};
-
-Views.submitActivityForm = async function (event, activityId) {
-  event.preventDefault();
-  const payload = {
-    activityId: activityId || undefined,
-    activityCode: document.getElementById('a_code').value, activityName: document.getElementById('a_name').value,
-    category: document.getElementById('a_category').value, level: document.getElementById('a_level').value,
-    ageGroup: document.getElementById('a_ageGroup').value, competitionType: document.getElementById('a_competitionType').value,
-    minStudents: document.getElementById('a_minStudents').value, maxStudents: document.getElementById('a_maxStudents').value,
-    minTeachers: document.getElementById('a_minTeachers').value, maxTeachers: document.getElementById('a_maxTeachers').value,
-    scoreType: document.getElementById('a_scoreType').value, status: document.getElementById('a_status').value,
-    criteria: document.getElementById('a_criteria').value
-  };
+Views.loadScoringActivity = async function (activityId) {
+  const area = document.getElementById('scoringArea');
+  if (!activityId) { area.innerHTML = ''; return; }
+  area.innerHTML = Components.skeletonTable();
   try {
-    await API.call('saveActivity', payload);
-    Components.closeModal(); Components.toast('success', 'บันทึกรายการแข่งขันสำเร็จ');
-    this.renderActivities();
+    const [regs, scores] = await Promise.all([
+      API.call('getRegistrations'),
+      API.call('getResultsByActivity', { activityId })
+    ]);
+    const activity = this._activityCache.find(a => a.activityId === activityId);
+    const approvedRegs = regs.filter(r => r.activityId === activityId && (r.status === 'APPROVED' || r.status === 'COMPLETED'));
+    const scoreMap = {};
+    scores.forEach(sc => { scoreMap[sc.registrationId] = sc; });
+
+    let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4">โรงเรียน</th><th class="p-4 text-center">คะแนน (เต็ม ${escapeHtml(activity ? activity.scoreType : 100)})</th>
+          <th class="p-4 text-center">คะแนนหัก</th><th class="p-4 text-center">คะแนนสุทธิ</th><th class="p-4 text-center">อันดับ/เหรียญ</th><th class="p-4 text-center">จัดการ</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+
+    if (approvedRegs.length === 0) {
+      html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีโรงเรียนที่ได้รับอนุมัติในรายการนี้')}</td></tr>`;
+    } else {
+      approvedRegs.forEach(r => {
+        const sc = scoreMap[r.registrationId];
+        const locked = sc && sc.status === 'LOCKED';
+        html += `<tr class="hover:bg-slate-50">
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(r.schoolName)}<div class="text-xs text-slate-400">${escapeHtml(r.registrationNo)}</div></td>
+          <td class="p-4 text-center"><input id="score_${r.registrationId}" type="number" step="0.01" value="${sc ? escapeHtml(sc.score) : ''}" ${locked ? 'disabled' : ''} class="w-24 p-2 border border-slate-300 rounded-lg text-center text-sm"></td>
+          <td class="p-4 text-center"><input id="deduct_${r.registrationId}" type="number" step="0.01" value="${sc ? escapeHtml(sc.deduction) : 0}" ${locked ? 'disabled' : ''} class="w-20 p-2 border border-slate-300 rounded-lg text-center text-sm"></td>
+          <td class="p-4 text-center font-mono font-semibold">${sc ? escapeHtml(sc.finalScore) : '-'}</td>
+          <td class="p-4 text-center">${sc && sc.medal ? Components.medalBadge(sc.medal) + ' <span class="text-xs text-slate-400">#' + escapeHtml(sc.rank) + '</span>' : '-'}</td>
+          <td class="p-4 text-center whitespace-nowrap">
+            ${locked ? `<span class="text-xs text-red-500 font-semibold"><i class="fa-solid fa-lock"></i> ล็อกแล้ว</span>
+              ${AppState.user.role === 'SUPER_ADMIN' ? `<button onclick="Views.reopenScore('${sc.scoreId}', '${activityId}')" class="ml-2 p-2 text-amber-600 hover:bg-amber-50 rounded-lg" title="ปลดล็อก"><i class="fa-solid fa-lock-open"></i></button>` : ''}` :
+            `<button onclick="Views.saveScoreRow('${r.registrationId}', '${activityId}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="บันทึกคะแนน"><i class="fa-solid fa-floppy-disk"></i></button>
+              ${sc && AppState.user.role !== 'COMMITTEE' ? `<button onclick="Views.lockScore('${sc.scoreId}', '${activityId}')" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg" title="ล็อกคะแนน"><i class="fa-solid fa-lock"></i></button>` : ''}`}
+          </td>
+        </tr>`;
+      });
+    }
+    html += `</tbody></table></div></div>`;
+    area.innerHTML = html;
+  } catch (e) {
+    area.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูลคะแนน');
+  }
+};
+
+Views.saveScoreRow = async function (registrationId, activityId) {
+  const score = document.getElementById('score_' + registrationId).value;
+  const deduction = document.getElementById('deduct_' + registrationId).value;
+  if (score === '') { Swal.fire('แจ้งเตือน', 'กรุณากรอกคะแนน', 'warning'); return; }
+  try {
+    await API.call('saveScore', { registrationId, activityId, score, deduction });
+    Components.toast('success', 'บันทึกคะแนนสำเร็จ');
+    this.loadScoringActivity(activityId);
   } catch (e) {}
 };
 
-Views.deleteActivityConfirm = async function (activityId) {
-  const confirm = await Swal.fire({ title: 'ยืนยันลบรายการแข่งขัน?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ' });
+Views.lockScore = async function (scoreId, activityId) {
+  const confirm = await Swal.fire({ title: 'ล็อกคะแนนนี้?', text: 'หลังล็อกแล้วจะแก้ไขไม่ได้ (ยกเว้นผู้ดูแลระบบสูงสุด)', icon: 'question', showCancelButton: true, confirmButtonText: 'ล็อกคะแนน' });
   if (!confirm.isConfirmed) return;
-  try { await API.call('deleteActivity', { activityId }); Components.toast('success', 'ลบรายการสำเร็จ'); this.renderActivities(); } catch (e) {}
+  try {
+    await API.call('lockScore', { scoreId });
+    Components.toast('success', 'ล็อกคะแนนสำเร็จ');
+    this.loadScoringActivity(activityId);
+  } catch (e) {}
 };
 
-window.addEventListener('DOMContentLoaded', () => { App.init(); });
+Views.reopenScore = async function (scoreId, activityId) {
+  try {
+    await API.call('reopenScore', { scoreId });
+    Components.toast('success', 'ปลดล็อกคะแนนสำเร็จ');
+    this.loadScoringActivity(activityId);
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — RESULTS ADMIN (Calculate ranking + official publish)
+ * ============================================================================
+ */
+Views.renderResultsAdmin = async function () {
+  document.getElementById('pageTitle').textContent = 'ประมวลผล / ประกาศผลการแข่งขัน';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const activities = await API.call('getActivities');
+    this._activityCache = activities;
+    container.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+        <label class="block text-sm font-medium text-slate-700 mb-2">เลือกรายการแข่งขัน</label>
+        <select id="resultActivitySelect" onchange="Views.loadResultsActivity(this.value)" class="w-full md:w-96 p-3 border border-slate-300 rounded-xl text-sm">
+          <option value="">-- เลือกรายการแข่งขัน --</option>
+          ${activities.map(a => `<option value="${a.activityId}">${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)} (${escapeHtml(a.level)}) ${a.status === 'COMPLETED' ? '✓ ประกาศแล้ว' : ''}</option>`).join('')}
+        </select>
+      </div>
+      <div id="resultsArea"></div>
+    `;
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.loadResultsActivity = async function (activityId) {
+  const area = document.getElementById('resultsArea');
+  if (!activityId) { area.innerHTML = ''; return; }
+  area.innerHTML = Components.skeletonTable();
+  try {
+    const scores = await API.call('getResultsByActivity', { activityId });
+    const activity = this._activityCache.find(a => a.activityId === activityId);
+    const isPublished = activity && activity.status === 'COMPLETED';
+
+    let html = `
+      <div class="flex flex-wrap gap-3 mb-4">
+        <button onclick="Views.calculateResultsFor('${activityId}')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold shadow-md">
+          <i class="fa-solid fa-calculator"></i> คำนวณอันดับ/เหรียญใหม่
+        </button>
+        ${isPublished
+          ? `<span class="px-4 py-2.5 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-circle-check"></i> ประกาศผลอย่างเป็นทางการแล้ว</span>`
+          : `<button onclick="Views.publishResultsFor('${activityId}')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-md">
+              <i class="fa-solid fa-bullhorn"></i> ประกาศผลอย่างเป็นทางการ
+            </button>`}
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <tr><th class="p-4 text-center">อันดับ</th><th class="p-4">โรงเรียน</th><th class="p-4 text-center">คะแนนสุทธิ</th><th class="p-4 text-center">รางวัล</th><th class="p-4 text-center">เหรียญ</th></tr>
+        </thead><tbody class="divide-y divide-slate-100">`;
+
+    if (scores.length === 0) {
+      html += `<tr><td colspan="5" class="p-0">${Components.emptyState('ยังไม่มีข้อมูลคะแนนสำหรับรายการนี้')}</td></tr>`;
+    } else {
+      scores.forEach(sc => {
+        html += `<tr class="hover:bg-slate-50">
+          <td class="p-4 text-center font-bold text-lg text-slate-700">${escapeHtml(sc.rank || '-')}</td>
+          <td class="p-4 font-semibold text-slate-800">${escapeHtml(sc.schoolName)}</td>
+          <td class="p-4 text-center font-mono">${escapeHtml(sc.finalScore)}</td>
+          <td class="p-4 text-center">${escapeHtml(sc.award || '-')}</td>
+          <td class="p-4 text-center">${Components.medalBadge(sc.medal)}</td>
+        </tr>`;
+      });
+    }
+    html += `</tbody></table></div></div>`;
+    area.innerHTML = html;
+  } catch (e) {
+    area.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดผลการแข่งขัน');
+  }
+};
+
+Views.calculateResultsFor = async function (activityId) {
+  try {
+    await API.call('calculateResults', { activityId });
+    Components.toast('success', 'คำนวณอันดับและเหรียญรางวัลสำเร็จ');
+    this.loadResultsActivity(activityId);
+  } catch (e) {}
+};
+
+Views.publishResultsFor = async function (activityId) {
+  const confirm = await Swal.fire({
+    title: 'ยืนยันประกาศผลอย่างเป็นทางการ?',
+    text: 'ระบบจะบันทึกผลถาวรและออกเกียรติบัตรให้อัตโนมัติ ไม่สามารถยกเลิกการประกาศได้',
+    icon: 'warning', showCancelButton: true, confirmButtonText: 'ประกาศผล', confirmButtonColor: '#d97706'
+  });
+  if (!confirm.isConfirmed) return;
+  try {
+    await API.call('publishResults', { activityId });
+    Components.toast('success', 'ประกาศผลและออกเกียรติบัตรสำเร็จ');
+    const activities = await API.call('getActivities');
+    this._activityCache = activities;
+    this.loadResultsActivity(activityId);
+  } catch (e) {}
+};
+
+/**
+ * ============================================================================
+ * VIEWS — AUDIT LOG (Super Admin / Admin)
+ * ============================================================================
+ */
+Views.renderAuditLog = async function () {
+  document.getElementById('pageTitle').textContent = 'ประวัติการใช้งานระบบ (Audit Log)';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const logs = await API.call('getAuditLogs');
+    this._logCache = logs;
+    TableUX.init('logs', logs);
+    this.paintAuditLog(1);
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintAuditLog = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('logs', page);
+  const rows = TableUX.paginate('logs');
+  let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหา..." oninput="Views.searchLogs(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+      <button onclick="exportTableToCSV(Views._logCache, 'audit_log')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+        <i class="fa-solid fa-file-csv"></i> Export
+      </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+        <tr><th class="p-4">เวลา</th><th class="p-4">ผู้ใช้งาน</th><th class="p-4">การกระทำ</th><th class="p-4">โมดูล</th><th class="p-4">รายละเอียด</th></tr>
+      </thead><tbody class="divide-y divide-slate-100">
+  `;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="5" class="p-0">${Components.emptyState('ยังไม่มีประวัติการใช้งาน')}</td></tr>`;
+  } else {
+    rows.forEach(l => {
+      html += `<tr class="hover:bg-slate-50">
+        <td class="p-4 text-xs text-slate-400 whitespace-nowrap">${Components.formatDateThai(l.timestamp)}</td>
+        <td class="p-4 text-slate-700">${escapeHtml(l.username)}</td>
+        <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded-lg text-xs font-mono text-slate-600">${escapeHtml(l.action)}</span></td>
+        <td class="p-4 text-slate-500 text-xs">${escapeHtml(l.module)}</td>
+        <td class="p-4 text-slate-600 text-xs">${escapeHtml(l.description)}</td>
+      </tr>`;
+    });
+  }
+  html += `</tbody></table></div>${TableUX.paginationControls('logs', 'Views.paintAuditLog')}</div>`;
+  container.innerHTML = html;
+};
+
+Views.searchLogs = function (q) { TableUX.search('logs', q); this.paintAuditLog(1); };
+
+/**
+ * ============================================================================
+ * VIEWS — CERTIFICATE VERIFICATION (Public-safe: no data mutation)
+ * ============================================================================
+ */
+Views.renderCertVerify = function () {
+  document.getElementById('pageTitle').textContent = 'ตรวจสอบเกียรติบัตร';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = `
+    <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
+      <i class="fa-solid fa-qrcode text-5xl text-indigo-500 mb-4"></i>
+      <h3 class="text-lg font-bold text-slate-800 mb-1">ตรวจสอบความถูกต้องของเกียรติบัตร</h3>
+      <p class="text-xs text-slate-400 mb-6">กรอกเลขที่เกียรติบัตร เช่น ART74-2569-000001</p>
+      <form onsubmit="Views.doCertVerify(event)" class="flex gap-2">
+        <input id="certVerifyInput" required placeholder="ART74-2569-XXXXXX" class="flex-1 p-3 border border-slate-300 rounded-xl text-sm font-mono text-center">
+        <button type="submit" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
+      </form>
+      <div id="certVerifyResult" class="mt-6 text-left"></div>
+    </div>
+  `;
+};
+
+Views.doCertVerify = async function (event) {
+  event.preventDefault();
+  const certNo = document.getElementById('certVerifyInput').value.trim();
+  const resultBox = document.getElementById('certVerifyResult');
+  resultBox.innerHTML = Components.loadingSpinner();
+  try {
+    const cert = await API.call('verifyCertificate', { certificateNo: certNo });
+    resultBox.innerHTML = `
+      <div class="p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <p class="text-emerald-700 font-semibold mb-3"><i class="fa-solid fa-circle-check"></i> พบข้อมูลถูกต้องในระบบ</p>
+        <div class="space-y-1 text-sm text-slate-700">
+          <p><span class="text-slate-400">เลขที่:</span> <span class="font-mono">${escapeHtml(cert.certificateNo)}</span></p>
+          <p><span class="text-slate-400">ชื่อผู้รับ:</span> ${escapeHtml(cert.recipientName)} (${escapeHtml(cert.recipientType)})</p>
+          <p><span class="text-slate-400">โรงเรียน:</span> ${escapeHtml(cert.schoolName)}</p>
+          <p><span class="text-slate-400">รายการแข่งขัน:</span> ${escapeHtml(cert.activityName)}</p>
+          <p><span class="text-slate-400">รางวัล:</span> ${escapeHtml(cert.award)}</p>
+          <p><span class="text-slate-400">ออกให้เมื่อ:</span> ${Components.formatDateThai(cert.issuedAt)}</p>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    resultBox.innerHTML = Components.errorState('ไม่พบเกียรติบัตรเลขที่นี้ในระบบ');
+  }
+};
 </script>
 </body>
 </html>

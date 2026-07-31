@@ -176,7 +176,7 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbwhdTYmPP5-MiKE3MMuSgCZcTU93aMgBJ8mhN_-swayRwBxBWS_INW-YLNHU-crTQ4H/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbwO32CexoUDptteYhy1qe_tV0uwzQtKbUScWY7awbQfuGeOB_xIEuFlk3lE3IHwVwGr/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
 
 const AppState = {
@@ -220,10 +220,6 @@ const API = {
     };
 
     // Mode 1: หน้านี้ถูกเปิดจากภายใน Apps Script Web App เอง (ไม่มีปัญหา CORS)
-    // เรียก serverCall (ไม่ใช่ doPost) เพราะ doPost คืนค่าเป็น
-    // ContentService.TextOutput ซึ่ง google.script.run ไม่สามารถส่งกลับมา
-    // ที่ client ได้เลย (จะได้ null เสมอ แม้ server จะทำงานถูกต้อง) — นี่คือ
-    // สาเหตุที่แท้จริงของ "เกิดข้อผิดพลาดไม่ทราบสาเหตุ" ที่ขึ้นตอน login
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       return new Promise((resolve, reject) => {
         google.script.run
@@ -234,7 +230,7 @@ const API = {
             Swal.fire('ข้อผิดพลาดเครือข่าย', err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', 'error');
             reject(err);
           })
-          .serverCall(requestData);
+          .doPost({ postData: { contents: JSON.stringify(requestData) } });
       });
     }
 
@@ -352,7 +348,8 @@ const App = {
       menuHtml += item('auditlog', 'fa-file-shield', 'ประวัติการใช้งาน');
     }
 
-    menuHtml += groupLabel('เกียรติบัตร');
+    menuHtml += groupLabel('เอกสาร');
+    menuHtml += item('documents', 'fa-file-pdf', 'เอกสาร PDF');
     menuHtml += item('certVerify', 'fa-qrcode', 'ตรวจสอบเกียรติบัตร');
 
     document.getElementById('sidebarMenu').innerHTML = menuHtml;
@@ -377,7 +374,8 @@ const App = {
       users: Views.renderUsers,
       settings: Views.renderSettings,
       auditlog: Views.renderAuditLog,
-      certVerify: Views.renderCertVerify
+      certVerify: Views.renderCertVerify,
+      documents: Views.renderDocumentsCenter
     };
     if (typeof routes[viewName] === 'function') {
       routes[viewName].call(Views);
@@ -813,6 +811,12 @@ Views.paintRegistrationsTable = function (page) {
         <button onclick="exportTableToCSV(Views._regCache, 'registrations')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-file-csv"></i> Export
         </button>
+        <button onclick="Views.downloadRegistrationSummaryPdf()" class="px-3 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-xl text-sm font-semibold flex items-center gap-2" title="สรุปการสมัคร (PDF)">
+          <i class="fa-solid fa-file-contract"></i> สรุปการสมัคร
+        </button>
+        <button onclick="Views.downloadResultsSummaryPdf()" class="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-sm font-semibold flex items-center gap-2" title="สรุปผล/เหรียญรางวัล (PDF)">
+          <i class="fa-solid fa-medal"></i> สรุปผล/เหรียญ
+        </button>
         ${isSchool ? `<button onclick="Views.openRegistrationModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> สมัครเข้าแข่งขัน
         </button>` : ''}
@@ -851,6 +855,8 @@ Views.paintRegistrationsTable = function (page) {
             ${isAdmin && r.status === 'SUBMITTED' ? `<button onclick="Views.approveRegistration('${r.registrationId}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="อนุมัติ"><i class="fa-solid fa-check"></i></button>
               <button onclick="Views.rejectRegistration('${r.registrationId}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="ไม่อนุมัติ"><i class="fa-solid fa-xmark"></i></button>` : ''}
             <button onclick="Views.viewCertificate('${r.registrationId}')" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg" title="เกียรติบัตร"><i class="fa-solid fa-certificate"></i></button>
+            <button onclick="Views.downloadRegistrationFormPdf('${r.registrationId}')" class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg" title="พิมพ์ใบสมัคร (PDF)"><i class="fa-solid fa-file-lines"></i></button>
+            ${(r.status === 'APPROVED' || r.status === 'COMPLETED') ? `<button onclick="Views.downloadIdCardsPdf('${r.registrationId}')" class="p-2 text-violet-600 hover:bg-violet-50 rounded-lg" title="พิมพ์บัตรประจำตัวผู้เข้าแข่งขัน (PDF)"><i class="fa-solid fa-id-card"></i></button>` : ''}
           </td>
         </tr>`;
     });
@@ -924,22 +930,50 @@ Views.openRegistrationModal = function (regId) {
   Components.openModal(reg ? 'แก้ไขการสมัคร: ' + reg.registrationNo : 'สมัครเข้าแข่งขันใหม่', html);
 
   if (reg) {
+    // แก้ไขรายการเดิม — แสดงข้อมูลนักเรียน/ครูที่บันทึกไว้จริง
     reg.students.forEach(s => this.addStudentRow(s));
     reg.teachers.forEach(t => this.addTeacherRow(t));
+    this.onActivityChangeForReg();
   } else {
-    this.addStudentRow();
+    // สมัครใหม่ — ยังไม่รู้จำนวนจนกว่าจะเลือกรายการแข่งขัน จึงเว้นว่างไว้ก่อน
+    // แล้วให้ onActivityChangeForReg() เป็นผู้สร้างช่องกรอกให้ตามจำนวนจริง
+    this.onActivityChangeForReg();
   }
-  this.onActivityChangeForReg();
 };
 
+/**
+ * เมื่อโรงเรียนเลือกรายการแข่งขัน ให้ค้นหาจำนวนนักเรียน/ครูที่กำหนดไว้ของ
+ * กิจกรรมนั้น (จากฐานข้อมูล Activities ที่โหลดมาแล้ว) แล้วสร้างช่องกรอกข้อมูล
+ * (คำนำหน้า ชื่อ นามสกุล) ให้ตรงตามจำนวนที่กิจกรรมนั้นกำหนดโดยอัตโนมัติ —
+ * ใช้จำนวนสูงสุด (maxStudents/maxTeachers) เป็นจำนวนช่องเริ่มต้น เนื่องจากเป็น
+ * จำนวนที่กิจกรรมส่วนใหญ่ (โดยเฉพาะประเภททีม) กำหนดตายตัว ผู้ใช้ยังลบแถวส่วนเกิน
+ * ได้เองหากกิจกรรมนั้นอนุญาตจำนวนขั้นต่ำน้อยกว่า
+ */
 Views.onActivityChangeForReg = function () {
   const sel = document.getElementById('regActivitySelect');
   const opt = sel.options[sel.selectedIndex];
   const hint = document.getElementById('activityHint');
-  if (opt && opt.value) {
-    hint.textContent = `นักเรียน: ${opt.dataset.minS}-${opt.dataset.maxS} คน · ครู: ${opt.dataset.minT}-${opt.dataset.maxT} คน`;
-  } else {
+  const studentContainer = document.getElementById('studentRows');
+  const teacherContainer = document.getElementById('teacherRows');
+
+  if (!opt || !opt.value) {
     hint.textContent = '';
+    return;
+  }
+
+  const minS = parseInt(opt.dataset.minS, 10) || 0;
+  const maxS = parseInt(opt.dataset.maxS, 10) || 0;
+  const minT = parseInt(opt.dataset.minT, 10) || 0;
+  const maxT = parseInt(opt.dataset.maxT, 10) || 0;
+  hint.textContent = `กิจกรรมนี้กำหนดนักเรียน ${minS}-${maxS} คน · ครูผู้ฝึกสอน ${minT}-${maxT} คน (ระบบสร้างช่องกรอกให้อัตโนมัติตามจำนวนสูงสุด)`;
+
+  // สร้างช่องกรอกใหม่ตามจำนวนของกิจกรรมที่เลือก เฉพาะตอนสมัครใหม่ หรือเมื่อผู้ใช้
+  // เปลี่ยนรายการแข่งขันเอง (ไม่ทับข้อมูลเดิมตอนเปิดแก้ไขใบสมัครที่มีอยู่แล้ว)
+  if (studentContainer.children.length === 0) {
+    for (let i = 0; i < Math.max(maxS, minS, 1); i++) this.addStudentRow();
+  }
+  if (teacherContainer.children.length === 0) {
+    for (let i = 0; i < Math.max(maxT, minT, 1); i++) this.addTeacherRow();
   }
 };
 
@@ -1095,6 +1129,9 @@ Views.viewCertificate = async function (regId) {
         <p class="text-slate-600">โรงเรียน${escapeHtml(cert.schoolName)}</p>
         <p class="mt-2 font-semibold">${escapeHtml(cert.award)}</p>
         <p class="text-xs text-slate-400 mt-2">ออกให้เมื่อ ${escapeHtml(cert.issueDate)}</p>
+        ${cert.isOfficial ? `<button onclick="Views.downloadCertificatePdf('${cert.certificateId}', this)" class="no-print mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold">
+          <i class="fa-solid fa-file-arrow-down"></i> สร้าง/ดาวน์โหลด PDF
+        </button>` : ''}
       </div>`).join('');
     document.getElementById('modalBody').innerHTML = certHtml;
     document.getElementById('printArea').innerHTML = certHtml;
@@ -1417,13 +1454,84 @@ Views.renderJudges = async function () {
   const container = document.getElementById('mainContent');
   container.innerHTML = Components.skeletonTable();
   try {
-    const judges = await API.call('getJudges');
+    const [judges, schools, activities] = await Promise.all([
+      API.call('getJudges'), API.call('getSchools'), API.call('getActivities')
+    ]);
     this._judgeCache = judges;
+    this._schoolCache = schools;
+    this._activityCache = activities;
     TableUX.init('judges', judges);
-    this.paintJudgesTable(1);
+    this.paintJudgesAndAssignments(1);
   } catch (e) {
     container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
   }
+};
+
+Views.paintJudgesAndAssignments = function (page) {
+  this.paintJudgesTable(page);
+  const container = document.getElementById('mainContent');
+  const assignPanel = document.createElement('div');
+  assignPanel.className = 'bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6';
+  assignPanel.innerHTML = `
+    <h3 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-users-viewfinder"></i> มอบหมายกรรมการต่อรายการแข่งขัน</h3>
+    <p class="text-xs text-slate-400 mb-4">เลือกรายการแข่งขัน แล้วเพิ่มกรรมการที่รับผิดชอบได้หลายคนตามเกณฑ์ของรายการนั้นๆ</p>
+    <div class="flex flex-col md:flex-row gap-3 mb-4">
+      <select id="assignActivitySelect" onchange="Views.loadJudgeAssignments(this.value)" class="flex-1 p-3 border border-slate-300 rounded-xl text-sm">
+        <option value="">-- เลือกรายการแข่งขัน --</option>
+        ${this._activityCache.map(a => `<option value="${a.activityId}">${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="judgeAssignArea" class="text-sm text-slate-400">เลือกรายการแข่งขันเพื่อดูและมอบหมายกรรมการ</div>
+  `;
+  container.appendChild(assignPanel);
+};
+
+Views.loadJudgeAssignments = async function (activityId) {
+  const area = document.getElementById('judgeAssignArea');
+  if (!activityId) { area.innerHTML = 'เลือกรายการแข่งขันเพื่อดูและมอบหมายกรรมการ'; return; }
+  area.innerHTML = Components.loadingSpinner();
+  try {
+    const assignments = await API.call('getJudgeAssignments', { activityId });
+    const assignedIds = assignments.map(a => a.judgeId);
+    const availableJudges = this._judgeCache.filter(j => j.status === 'ACTIVE' && !assignedIds.includes(j.judgeId));
+    area.innerHTML = `
+      <div class="flex flex-wrap gap-2 mb-4">
+        ${assignments.length === 0 ? '<span class="text-xs text-slate-400">ยังไม่มีกรรมการที่มอบหมายในรายการนี้</span>' :
+          assignments.map(a => `
+            <span class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold flex items-center gap-2">
+              <i class="fa-solid fa-user-tie"></i> ${escapeHtml(a.judgeName)}
+              <button onclick="Views.removeJudgeAssignment('${a.assignmentId}', '${activityId}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+            </span>`).join('')}
+      </div>
+      <div class="flex gap-2">
+        <select id="newAssignJudge" class="flex-1 p-2.5 border border-slate-300 rounded-xl text-sm">
+          <option value="">-- เลือกกรรมการเพิ่ม --</option>
+          ${availableJudges.map(j => `<option value="${j.judgeId}">${escapeHtml(j.name)} (${escapeHtml(j.organization || '-')})</option>`).join('')}
+        </select>
+        <button onclick="Views.addJudgeAssignment('${activityId}')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold"><i class="fa-solid fa-plus"></i> เพิ่ม</button>
+      </div>
+    `;
+  } catch (e) {
+    area.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูลการมอบหมาย');
+  }
+};
+
+Views.addJudgeAssignment = async function (activityId) {
+  const judgeId = document.getElementById('newAssignJudge').value;
+  if (!judgeId) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกกรรมการ', 'warning'); return; }
+  try {
+    await API.call('assignJudgeToActivity', { activityId, judgeId });
+    Components.toast('success', 'มอบหมายกรรมการสำเร็จ');
+    this.loadJudgeAssignments(activityId);
+  } catch (e) {}
+};
+
+Views.removeJudgeAssignment = async function (assignmentId, activityId) {
+  try {
+    await API.call('removeJudgeAssignment', { assignmentId });
+    Components.toast('success', 'ยกเลิกการมอบหมายสำเร็จ');
+    this.loadJudgeAssignments(activityId);
+  } catch (e) {}
 };
 
 Views.paintJudgesTable = function (page) {
@@ -1463,23 +1571,47 @@ Views.paintJudgesTable = function (page) {
         </tr>`;
     });
   }
-  html += `</tbody></table></div>${TableUX.paginationControls('judges', 'Views.paintJudgesTable')}</div>`;
+  html += `</tbody></table></div>${TableUX.paginationControls('judges', 'Views.paintJudgesAndAssignments')}</div>`;
   container.innerHTML = html;
 };
 
-Views.searchJudges = function (q) { TableUX.search('judges', q); this.paintJudgesTable(1); };
+Views.searchJudges = function (q) { TableUX.search('judges', q); this.paintJudgesAndAssignments(1); };
 
 Views.openJudgeModal = function (judgeId) {
   const j = judgeId ? this._judgeCache.find(x => x.judgeId === judgeId) : null;
+  // แยกชื่อเดิม (ที่เก็บเป็นชื่อเต็ม) กลับเป็นคำนำหน้า/ชื่อ/สกุล เพื่อแก้ไขทีละส่วนได้
+  let jPrefix = '', jFirst = '', jLast = '';
+  if (j) {
+    const prefixes = ['นาย', 'นาง', 'นางสาว', 'ว่าที่ร้อยตรี', 'ดร.'];
+    const matched = prefixes.find(p => j.name.startsWith(p));
+    jPrefix = matched || '';
+    const rest = (matched ? j.name.slice(matched.length) : j.name).trim().split(' ');
+    jFirst = rest[0] || '';
+    jLast = rest.slice(1).join(' ') || '';
+  }
+  const schoolOptions = (this._schoolCache || []).map(s => `<option value="${escapeHtml(s.schoolName)}" ${j && j.organization === s.schoolName ? 'selected' : ''}>${escapeHtml(s.schoolName)}</option>`).join('');
+
   const html = `
     <form onsubmit="Views.submitJudgeForm(event, '${judgeId || ''}')" class="space-y-4">
-      <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ-สกุล *</label>
-        <input id="jName" value="${j ? escapeHtml(j.name) : ''}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      <div class="grid grid-cols-4 gap-3">
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">คำนำหน้า *</label>
+          <select id="jPrefix" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+            ${['นาย', 'นาง', 'นางสาว', 'ว่าที่ร้อยตรี', 'ดร.'].map(p => `<option ${jPrefix === p ? 'selected' : ''}>${p}</option>`).join('')}
+          </select></div>
+        <div class="col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ *</label>
+          <input id="jFirstName" value="${escapeHtml(jFirst)}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">นามสกุล *</label>
+          <input id="jLastName" value="${escapeHtml(jLast)}" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+      </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-slate-700 mb-1">ตำแหน่ง</label>
-          <input id="jPosition" value="${j ? escapeHtml(j.position || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
-        <div><label class="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน</label>
-          <input id="jOrg" value="${j ? escapeHtml(j.organization || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+          <input id="jPosition" value="${j ? escapeHtml(j.position || '') : ''}" placeholder="เช่น ครู, ผู้อำนวยการ" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน (ต้องเป็นโรงเรียนในกลุ่มฯ) *</label>
+          <select id="jOrg" required class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+            <option value="">-- เลือกโรงเรียนต้นสังกัด --</option>
+            ${schoolOptions}
+          </select>
+          <p class="text-xs text-slate-400 mt-1">กรรมการต้องเป็นบุคลากรของโรงเรียนในกลุ่มโรงเรียนโนนสมบูรณ์นาสวรรค์คำนาดีเท่านั้น</p></div>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-slate-700 mb-1">โทรศัพท์</label>
@@ -1501,9 +1633,12 @@ Views.openJudgeModal = function (judgeId) {
 
 Views.submitJudgeForm = async function (event, judgeId) {
   event.preventDefault();
+  const prefix = document.getElementById('jPrefix').value;
+  const firstName = document.getElementById('jFirstName').value.trim();
+  const lastName = document.getElementById('jLastName').value.trim();
   const payload = {
     judgeId: judgeId || undefined,
-    name: document.getElementById('jName').value,
+    name: prefix + firstName + ' ' + lastName,
     position: document.getElementById('jPosition').value,
     organization: document.getElementById('jOrg').value,
     phone: document.getElementById('jPhone').value,
@@ -2145,6 +2280,138 @@ Views.doCertVerify = async function (event) {
     resultBox.innerHTML = Components.errorState('ไม่พบเกียรติบัตรเลขที่นี้ในระบบ');
   }
 };
+
+/**
+ * ============================================================================
+ * VIEWS — PDF DOCUMENT GENERATION (Google Drive) helpers
+ * ทุกฟังก์ชันด้านล่างเรียก Backend ให้สร้างไฟล์ PDF จริง บันทึกลง Google Drive
+ * และเก็บลิงก์ดาวน์โหลดไว้ใน Sheet "GeneratedDocuments" เพื่อค้นหา/ดาวน์โหลด
+ * ภายหลังได้เสมอ (ดูหน้า "เอกสาร PDF" — Views.renderDocumentsCenter)
+ * ============================================================================
+ */
+Views._openGeneratedFile = function (result) {
+  Swal.fire({
+    title: 'สร้างไฟล์ PDF สำเร็จ',
+    html: `ไฟล์ถูกบันทึกลง Google Drive แล้ว<br><span class="text-xs text-slate-400">${escapeHtml(result.fileName)}</span>`,
+    icon: 'success',
+    confirmButtonText: 'เปิด/ดาวน์โหลดไฟล์',
+    showCancelButton: true,
+    cancelButtonText: 'ปิด'
+  }).then(res => {
+    if (res.isConfirmed) window.open(result.fileUrl, '_blank');
+  });
+};
+
+Views.downloadCertificatePdf = async function (certificateId, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังสร้างไฟล์...'; }
+  try {
+    const result = await API.call('generateCertificatePdf', { certificateId });
+    this._openGeneratedFile(result);
+  } catch (e) {
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> สร้าง/ดาวน์โหลด PDF'; }
+  }
+};
+
+Views.downloadIdCardsPdf = async function (registrationId) {
+  Swal.fire({ title: 'กำลังสร้างไฟล์บัตรประจำตัว...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  try {
+    const result = await API.call('generateIdCardsPdf', { registrationId });
+    this._openGeneratedFile(result);
+  } catch (e) {
+    Swal.close();
+  }
+};
+
+Views.downloadRegistrationFormPdf = async function (registrationId) {
+  Swal.fire({ title: 'กำลังสร้างไฟล์ใบสมัคร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  try {
+    const result = await API.call('generateRegistrationFormPdf', { registrationId });
+    this._openGeneratedFile(result);
+  } catch (e) {
+    Swal.close();
+  }
+};
+
+Views.downloadRegistrationSummaryPdf = async function (schoolId) {
+  Swal.fire({ title: 'กำลังสร้างเอกสารสรุปการสมัคร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  try {
+    const result = await API.call('generpZEAWYtiB6bJ16NuLbGCc6CZ6jJdKfb63', { schoolId: schoolId || undefined });
+    this._openGeneratedFile(result);
+  } catch (e) {
+    Swal.close();
+  }
+};
+
+Views.downloadResultsSummaryPdf = async function (schoolId) {
+  Swal.fire({ title: 'กำลังสร้างเอกสารสรุปผลการแข่งขัน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  try {
+    const result = await API.call('generateResultsSummaryPdf', { schoolId: schoolId || undefined });
+    this._openGeneratedFile(result);
+  } catch (e) {
+    Swal.close();
+  }
+};
+
+/**
+ * ============================================================================
+ * VIEWS — DOCUMENTS CENTER (ค้นหา/ดาวน์โหลดเอกสาร PDF ที่เคยสร้างไว้ทั้งหมด)
+ * ============================================================================
+ */
+Views.renderDocumentsCenter = async function () {
+  document.getElementById('pageTitle').textContent = 'เอกสาร PDF (ค้นหา/ดาวน์โหลดภายหลัง)';
+  const container = document.getElementById('mainContent');
+  container.innerHTML = Components.skeletonTable();
+  try {
+    const docs = await API.call('getGeneratedDocuments');
+    this._docCache = docs;
+    TableUX.init('docs', docs);
+    this.paintDocumentsTable(1);
+  } catch (e) {
+    container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+  }
+};
+
+Views.paintDocumentsTable = function (page) {
+  const container = document.getElementById('mainContent');
+  if (page) TableUX.setPage('docs', page);
+  const rows = TableUX.paginate('docs');
+  const docTypeLabel = t => ({
+    CERTIFICATE: 'เกียรติบัตร', IDCARD: 'บัตรประจำตัวผู้เข้าแข่งขัน', REGISTRATION_FORM: 'ใบสมัคร',
+    REGISTRATION_SUMMARY: 'สรุปการสมัคร', RESULTS_SUMMARY: 'สรุปผล/เหรียญรางวัล'
+  }[t] || t);
+  let html = `
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+      <div class="relative w-full md:w-80">
+        <input type="text" placeholder="ค้นหาเอกสาร (ชื่อ, โรงเรียน, เลขที่)..." oninput="Views.searchDocs(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+        <tr><th class="p-4">ประเภทเอกสาร</th><th class="p-4">รายละเอียด</th><th class="p-4">โรงเรียน</th><th class="p-4">สร้างเมื่อ</th><th class="p-4">สร้างโดย</th><th class="p-4 text-center">ดาวน์โหลด</th></tr>
+      </thead><tbody class="divide-y divide-slate-100">
+  `;
+  if (rows.length === 0) {
+    html += `<tr><td colspan="6" class="p-0">${Components.emptyState('ยังไม่มีเอกสาร PDF ที่สร้างไว้')}</td></tr>`;
+  } else {
+    rows.forEach(d => {
+      html += `<tr class="hover:bg-slate-50">
+        <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-600">${escapeHtml(docTypeLabel(d.docType))}</span></td>
+        <td class="p-4 font-semibold text-slate-800">${escapeHtml(d.refLabel)}</td>
+        <td class="p-4 text-slate-600">${escapeHtml(d.schoolName || '-')}</td>
+        <td class="p-4 text-xs text-slate-400">${Components.formatDateThai(d.generatedAt)}</td>
+        <td class="p-4 text-xs text-slate-400">${escapeHtml(d.generatedBy)}</td>
+        <td class="p-4 text-center"><a href="${escapeHtml(d.driveUrl)}" target="_blank" class="p-2 inline-block text-emerald-600 hover:bg-emerald-50 rounded-lg" title="เปิด/ดาวน์โหลด"><i class="fa-solid fa-file-arrow-down"></i></a></td>
+      </tr>`;
+    });
+  }
+  html += `</tbody></table></div>${TableUX.paginationControls('docs', 'Views.paintDocumentsTable')}</div>`;
+  container.innerHTML = html;
+};
+
+Views.searchDocs = function (q) { TableUX.search('docs', q); this.paintDocumentsTable(1); };
 </script>
 </body>
 </html>

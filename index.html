@@ -220,6 +220,10 @@ const API = {
     };
 
     // Mode 1: หน้านี้ถูกเปิดจากภายใน Apps Script Web App เอง (ไม่มีปัญหา CORS)
+    // เรียก serverCall (ไม่ใช่ doPost) เพราะ doPost คืนค่าเป็น
+    // ContentService.TextOutput ซึ่ง google.script.run ไม่สามารถส่งกลับมา
+    // ที่ client ได้เลย (จะได้ null เสมอ แม้ server จะทำงานถูกต้อง) — นี่คือ
+    // สาเหตุที่แท้จริงของ "เกิดข้อผิดพลาดไม่ทราบสาเหตุ" ที่ขึ้นตอน login
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       return new Promise((resolve, reject) => {
         google.script.run
@@ -230,7 +234,7 @@ const API = {
             Swal.fire('ข้อผิดพลาดเครือข่าย', err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', 'error');
             reject(err);
           })
-          .doPost({ postData: { contents: JSON.stringify(requestData) } });
+          .serverCall(requestData);
       });
     }
 

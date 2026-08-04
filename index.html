@@ -14,7 +14,7 @@
 
   <style>
     body { font-family: 'Sarabun', sans-serif; }
-    .nav-item-active { background-color: rgba(99, 102, 241, 0.18); color: #a5b4fc; border-left: 4px solid #6366f1; }
+    .nav-item-active { background-color: rgba(249, 115, 22, 0.18); color: #fdba74; border-left: 4px solid #f97316; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
     .skeleton { background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 37%,#f1f5f9 63%); background-size: 400% 100%; animation: skeleton-loading 1.4s ease infinite; }
@@ -46,10 +46,10 @@
   </div>
 
   <!-- LOGIN VIEW -->
-  <div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 px-4">
+  <div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 px-4">
     <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-slate-100">
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4 shadow-inner">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 text-orange-500 mb-4 shadow-inner">
           <i class="fa-solid fa-award text-3xl"></i>
         </div>
         <h2 class="text-2xl font-bold text-slate-800">ศิลปหัตถกรรมนักเรียน ครั้งที่ 74</h2>
@@ -60,13 +60,13 @@
       <form id="loginForm" onsubmit="App.handleLogin(event)" class="space-y-5">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
-          <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+          <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 text-sm">
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน (Password)</label>
-          <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+          <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 text-sm">
         </div>
-        <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+        <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
           <span>เข้าสู่ระบบ</span>
           <i class="fa-solid fa-arrow-right-to-bracket"></i>
         </button>
@@ -79,7 +79,7 @@
 
   <!-- PUBLIC (NO-LOGIN) RESULTS VIEW -->
   <div id="publicView" class="hidden min-h-screen bg-slate-50">
-    <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+    <header class="bg-blue-900 text-white px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
         <span class="font-bold text-base">ประกาศผลการแข่งขัน ครั้งที่ 74</span>
@@ -93,9 +93,9 @@
 
   <!-- MAIN APP LAYOUT -->
   <div id="appLayout" class="hidden min-h-screen flex flex-col md:flex-row">
-    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between md:h-screen md:sticky md:top-0">
+    <aside class="w-full md:w-64 bg-blue-900 text-slate-300 flex-shrink-0 flex flex-col justify-between md:h-screen md:sticky md:top-0">
       <div class="overflow-y-auto">
-        <div class="p-5 flex items-center justify-between border-b border-slate-800">
+        <div class="p-5 flex items-center justify-between border-b border-blue-800">
           <div class="flex items-center gap-3">
             <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
             <span class="font-bold text-white text-base">งานศิลปหัตถกรรมฯ<br><span class="text-xs font-normal text-slate-400">ครั้งที่ 74 (ปี 2569)</span></span>
@@ -105,16 +105,16 @@
           <div class="relative">
             <input type="text" id="globalSearchInput" placeholder="ค้นหา (นักเรียน, โรงเรียน, เลขที่สมัคร...)"
               onkeydown="if(event.key==='Enter') Views.doGlobalSearch()"
-              class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              class="w-full bg-blue-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-400">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
           </div>
         </div>
         <nav class="p-3 space-y-1" id="sidebarMenu"></nav>
       </div>
-      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
+      <div class="p-4 border-t border-blue-800 flex items-center justify-between bg-blue-950/50">
         <div class="truncate">
           <p id="navUserDisplayName" class="text-sm font-semibold text-white truncate">-</p>
-          <p id="navUserRole" class="text-xs text-indigo-400 truncate">-</p>
+          <p id="navUserRole" class="text-xs text-orange-300 truncate">-</p>
         </div>
         <button onclick="Views.showOfflineQueueInfo()" id="offlineQueueBadge" class="hidden mr-1 px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded-full" title="รายการที่รอซิงค์">0</button>
         <button onclick="App.handleLogout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg" title="ออกจากระบบ">
@@ -185,7 +185,7 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbwhmo-wK6pqSG7ZQISVv55FMbmMWzARwOsFW1tHEoWwnR7gfugvULACqg6goq_SQBZlHw/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbwhdTYmPP5-MiKE3MMuSgCZcTU93aMgBJ8mhN_-swayRwBxBWS_INW-YLNHU-crTQ4H/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
 
 const AppState = {
@@ -544,7 +544,7 @@ if (!(typeof google !== 'undefined' && google.script && google.script.run) && 's
 const Components = {
   loadingSpinner() {
     return `<div class="flex flex-col items-center justify-center p-12 text-slate-400">
-      <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3 text-indigo-600"></i>
+      <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3 text-orange-500"></i>
       <p class="text-sm font-medium">กำลังโหลดข้อมูล...</p>
     </div>`;
   },
@@ -699,7 +699,7 @@ const Views = {
       container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fa-solid fa-school text-2xl"></i></div>
+            <div class="p-4 bg-orange-50 text-orange-500 rounded-xl"><i class="fa-solid fa-school text-2xl"></i></div>
             <div><p class="text-xs text-slate-500">โรงเรียนทั้งหมด</p>
             <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(stats.totalSchools)} <span class="text-xs font-normal">แห่ง</span></h3></div>
           </div>
@@ -918,7 +918,7 @@ Views.paintRegistrationsTable = function (page) {
         <button onclick="exportTableToCSV(Views._regCache, 'registrations')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-file-csv"></i> Export
         </button>
-        ${isSchool ? `<button onclick="Views.openRegistrationModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        ${isSchool ? `<button onclick="Views.openRegistrationModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> สมัครเข้าแข่งขัน
         </button>` : ''}
       </div>
@@ -942,7 +942,7 @@ Views.paintRegistrationsTable = function (page) {
     rows.forEach(r => {
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-4 font-mono font-medium text-indigo-600">${escapeHtml(r.registrationNo)}</td>
+          <td class="p-4 font-mono font-medium text-orange-500">${escapeHtml(r.registrationNo)}</td>
           <td class="p-4 font-semibold text-slate-800">${escapeHtml(r.activityName)}<div class="text-xs text-slate-400">${escapeHtml(r.level)}</div></td>
           <td class="p-4 text-slate-600">${escapeHtml(r.schoolName)}</td>
           <td class="p-4 text-center">${escapeHtml(r.studentCount)}</td>
@@ -981,17 +981,17 @@ Views.viewRegistrationDetail = function (regId) {
       <button onclick="Views.generateRegFormPdf('${r.registrationId}')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5">
         <i class="fa-solid fa-file-lines"></i> พิมพ์ใบสมัคร (PDF)
       </button>
-      ${canPrintCards ? `<button onclick="Views.generateAllIdCards('${r.registrationId}')" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+      ${canPrintCards ? `<button onclick="Views.generateAllIdCards('${r.registrationId}')" class="px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-xs font-semibold flex items-center gap-1.5">
         <i class="fa-solid fa-id-card"></i> พิมพ์บัตรทั้งทีม (ZIP)
       </button>` : `<span class="px-3 py-2 text-xs text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> พิมพ์บัตรประจำตัวได้หลังอนุมัติแล้ว</span>`}
     </div>
     <h4 class="font-bold text-slate-700 pt-2 border-t">รายชื่อนักเรียน (${r.students.length})</h4>
     <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ชั้น</th><th class="text-left py-1">รหัสนักเรียน</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
-      ${r.students.map(s => `<tr class="border-t"><td class="py-1.5">${escapeHtml(s.fullName)}</td><td class="py-1.5">${escapeHtml(s.grade)}</td><td class="py-1.5">${escapeHtml(s.studentCode) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${s.id}','นักเรียน')" class="text-indigo-600 hover:text-indigo-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
+      ${r.students.map(s => `<tr class="border-t"><td class="py-1.5">${escapeHtml(s.fullName)}</td><td class="py-1.5">${escapeHtml(s.grade)}</td><td class="py-1.5">${escapeHtml(s.studentCode) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${s.id}','นักเรียน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
     </tbody></table>
     <h4 class="font-bold text-slate-700 pt-2 border-t">ครูผู้ควบคุม (${r.teachers.length})</h4>
     <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ตำแหน่ง</th><th class="text-left py-1">โทรศัพท์</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
-      ${r.teachers.map(t => `<tr class="border-t"><td class="py-1.5">${escapeHtml(t.fullName)}</td><td class="py-1.5">${escapeHtml(t.position)}</td><td class="py-1.5">${escapeHtml(t.phone) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${t.id}','ครูผู้ฝึกสอน')" class="text-indigo-600 hover:text-indigo-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
+      ${r.teachers.map(t => `<tr class="border-t"><td class="py-1.5">${escapeHtml(t.fullName)}</td><td class="py-1.5">${escapeHtml(t.position)}</td><td class="py-1.5">${escapeHtml(t.phone) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${t.id}','ครูผู้ฝึกสอน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
     </tbody></table>
     ${r.notes ? `<div class="pt-2 border-t"><p class="text-slate-400 text-xs">หมายเหตุ</p><p>${escapeHtml(r.notes)}</p></div>` : ''}
   </div>`;
@@ -1054,14 +1054,14 @@ Views.openRegistrationModal = function (regId) {
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="text-sm font-semibold text-slate-700">รายชื่อนักเรียน</label>
-          <button type="button" onclick="Views.addStudentRow()" class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มนักเรียน</button>
+          <button type="button" onclick="Views.addStudentRow()" class="text-xs px-2 py-1 bg-orange-50 text-orange-500 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มนักเรียน</button>
         </div>
         <div id="studentRows" class="space-y-2"></div>
       </div>
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="text-sm font-semibold text-slate-700">ครูผู้ควบคุม</label>
-          <button type="button" onclick="Views.addTeacherRow()" class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มครู</button>
+          <button type="button" onclick="Views.addTeacherRow()" class="text-xs px-2 py-1 bg-orange-50 text-orange-500 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มครู</button>
         </div>
         <div id="teacherRows" class="space-y-2"></div>
       </div>
@@ -1069,7 +1069,7 @@ Views.openRegistrationModal = function (regId) {
         <label class="block text-sm font-medium text-slate-700 mb-1">หมายเหตุ</label>
         <textarea id="regNotes" rows="2" class="w-full p-3 border border-slate-300 rounded-xl text-sm">${reg ? escapeHtml(reg.notes || '') : ''}</textarea>
       </div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกแบบร่าง
       </button>
     </form>
@@ -1382,7 +1382,7 @@ Views.paintActivitiesTable = function (page) {
         <button onclick="exportTableToCSV(Views._activityCache, 'activities')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-file-csv"></i> Export
         </button>
-        <button onclick="Views.openActivityModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        <button onclick="Views.openActivityModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> เพิ่มรายการแข่งขัน
         </button>
       </div>
@@ -1405,7 +1405,7 @@ Views.paintActivitiesTable = function (page) {
     rows.forEach(a => {
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-4 font-mono text-indigo-600">${escapeHtml(a.activityCode)}</td>
+          <td class="p-4 font-mono text-orange-500">${escapeHtml(a.activityCode)}</td>
           <td class="p-4 font-semibold text-slate-800">${escapeHtml(a.activityName)}<div class="text-xs text-slate-400">${escapeHtml(a.competitionType)}</div></td>
           <td class="p-4 text-slate-600">${escapeHtml(a.category)}<div class="text-xs text-slate-400">${escapeHtml(a.level)}</div></td>
           <td class="p-4 text-center">${escapeHtml(a.minStudents)}-${escapeHtml(a.maxStudents)}</td>
@@ -1468,7 +1468,7 @@ Views.openActivityModal = function (actId) {
         <input id="actScoreType" type="number" value="${a ? a.scoreType : 100}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
       <div><label class="block text-sm font-medium text-slate-700 mb-1">เกณฑ์การให้คะแนน</label>
         <textarea id="actCriteria" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">${a ? escapeHtml(a.criteria || '') : ''}</textarea></div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกรายการแข่งขัน
       </button>
     </form>
@@ -1552,7 +1552,7 @@ Views.paintSchoolsTable = function (page) {
           <i class="fa-solid fa-upload"></i> นำเข้าจาก Excel
           <input type="file" accept=".xlsx,.xls" class="hidden" onchange="Views.handleSchoolImportFile(event)">
         </label>
-        <button onclick="Views.openSchoolModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+        <button onclick="Views.openSchoolModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> เพิ่มโรงเรียน
         </button>
       </div>
@@ -1571,7 +1571,7 @@ Views.paintSchoolsTable = function (page) {
     rows.forEach(s => {
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-4 font-mono text-indigo-600">${escapeHtml(s.schoolCode)}</td>
+          <td class="p-4 font-mono text-orange-500">${escapeHtml(s.schoolCode)}</td>
           <td class="p-4 font-semibold text-slate-800">${escapeHtml(s.schoolName)}<div class="text-xs text-slate-400">${escapeHtml(s.shortName || '')}</div></td>
           <td class="p-4 text-slate-600">${escapeHtml(s.directorName || '-')}</td>
           <td class="p-4 font-mono text-xs text-slate-500">${escapeHtml(s.username)}</td>
@@ -1662,7 +1662,7 @@ Views.openSchoolModal = function (schoolId) {
         <div><label class="block text-sm font-medium text-slate-700 mb-1">${s ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
           <input id="schPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
       </div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลโรงเรียน
       </button>
     </form>
@@ -1733,7 +1733,7 @@ Views.paintJudgesTable = function (page) {
         <input type="text" placeholder="ค้นหา..." oninput="Views.searchJudges(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
-      <button onclick="Views.openJudgeModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+      <button onclick="Views.openJudgeModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> เพิ่มกรรมการ
       </button>
     </div>
@@ -1803,7 +1803,7 @@ Views.openJudgeModal = function (judgeId) {
         <input id="jUsername" placeholder="เว้นว่างให้ระบบสุ่มให้" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>` : ''}
       <div><label class="block text-sm font-medium text-slate-700 mb-1">${j ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
         <input id="jPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลกรรมการ
       </button>
     </form>
@@ -1858,7 +1858,7 @@ Views.openAssignJudgesModal = async function (activityId) {
               <option value="">-- เลือกกรรมการ --</option>
               ${availableJudges.map(j => `<option value="${j.judgeId}">${escapeHtml(j.name)} (${escapeHtml(j.schoolName || '-')})</option>`).join('')}
             </select>
-            <button onclick="Views.assignJudge('${activityId}')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold">เพิ่ม</button>
+            <button onclick="Views.assignJudge('${activityId}')" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold">เพิ่ม</button>
           </div>
         </div>
         <div>
@@ -1927,7 +1927,7 @@ Views.paintUsersTable = function (page) {
         <input type="text" placeholder="ค้นหา..." oninput="Views.searchUsers(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
-      <button onclick="Views.openUserModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+      <button onclick="Views.openUserModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> เพิ่มผู้ใช้งาน
       </button>
     </div>
@@ -1945,7 +1945,7 @@ Views.paintUsersTable = function (page) {
     rows.forEach(u => {
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-4 font-mono text-indigo-600">${escapeHtml(u.username)}</td>
+          <td class="p-4 font-mono text-orange-500">${escapeHtml(u.username)}</td>
           <td class="p-4 font-semibold text-slate-800">${escapeHtml(u.displayName)}</td>
           <td class="p-4 text-slate-600">${escapeHtml(roleLabel(u.role))}</td>
           <td class="p-4 text-xs text-slate-400">${Components.formatDateThai(u.lastLogin)}</td>
@@ -1978,7 +1978,7 @@ Views.openUserModal = function (userId) {
         </select></div>
       <div><label class="block text-sm font-medium text-slate-700 mb-1">${u ? 'รีเซ็ตรหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน (ค่าเริ่มต้น 123456)'}</label>
         <input id="uPassword" type="password" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกผู้ใช้งาน
       </button>
     </form>
@@ -2084,7 +2084,7 @@ Views.paintSettings = function () {
   rows.forEach(s => {
     html += `
       <tr class="hover:bg-slate-50">
-        <td class="p-4 font-mono text-xs text-indigo-600">${escapeHtml(s.Key)}</td>
+        <td class="p-4 font-mono text-xs text-orange-500">${escapeHtml(s.Key)}</td>
         <td class="p-4"><input id="setval_${escapeHtml(s.Key)}" value="${escapeHtml(s.Value)}" class="w-full p-2 border border-slate-300 rounded-lg text-sm"></td>
         <td class="p-4 text-xs text-slate-400">${escapeHtml(s.Description || '')}</td>
         <td class="p-4 text-center"><button onclick="Views.saveOneSetting('${escapeHtml(s.Key)}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="บันทึก"><i class="fa-solid fa-floppy-disk"></i></button></td>
@@ -2151,7 +2151,7 @@ Views.paintSchedulesTable = function (page) {
         <input type="text" placeholder="ค้นหา..." oninput="Views.searchSched(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
-      <button onclick="Views.openScheduleModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+      <button onclick="Views.openScheduleModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> เพิ่มตารางแข่งขัน
       </button>
     </div>
@@ -2214,7 +2214,7 @@ Views.openScheduleModal = function (scheduleId) {
         <input id="schJudge" value="${s ? escapeHtml(s.judge || '') : ''}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm"></div>
       <div><label class="block text-sm font-medium text-slate-700 mb-1">หมายเหตุ</label>
         <textarea id="schNotes" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">${s ? escapeHtml(s.notes || '') : ''}</textarea></div>
-      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md">
+      <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md">
         <i class="fa-solid fa-floppy-disk"></i> บันทึกตารางการแข่งขัน
       </button>
     </form>
@@ -2552,7 +2552,7 @@ Views.paintDocumentsTable = function (page) {
         <input type="text" placeholder="ค้นหาเอกสาร..." oninput="Views.searchDocuments(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
-      ${isSchool ? `<button onclick="Views.generateSummaryReport()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
+      ${isSchool ? `<button onclick="Views.generateSummaryReport()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
         <i class="fa-solid fa-file-circle-plus"></i> สร้างรายงานสรุปผลของโรงเรียน
       </button>` : ''}
     </div>
@@ -2570,7 +2570,7 @@ Views.paintDocumentsTable = function (page) {
     rows.forEach(d => {
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">${escapeHtml(this.documentTypeLabel(d.type))}</span></td>
+          <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-600">${escapeHtml(this.documentTypeLabel(d.type))}</span></td>
           <td class="p-4 text-slate-700">${escapeHtml(d.relatedLabel)}</td>
           <td class="p-4 text-slate-600">${escapeHtml(d.schoolName) || '-'}</td>
           <td class="p-4 text-xs text-slate-400">${Components.formatDateThai(d.generatedAt)}</td>
@@ -2605,12 +2605,12 @@ Views.renderCertVerify = function () {
   const container = document.getElementById('mainContent');
   container.innerHTML = `
     <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
-      <i class="fa-solid fa-qrcode text-5xl text-indigo-500 mb-4"></i>
+      <i class="fa-solid fa-qrcode text-5xl text-orange-400 mb-4"></i>
       <h3 class="text-lg font-bold text-slate-800 mb-1">ตรวจสอบความถูกต้องของเกียรติบัตร</h3>
       <p class="text-xs text-slate-400 mb-6">กรอกเลขที่เกียรติบัตร เช่น ART74-2569-000001</p>
       <form onsubmit="Views.doCertVerify(event)" class="flex gap-2">
         <input id="certVerifyInput" required placeholder="ART74-2569-XXXXXX" class="flex-1 p-3 border border-slate-300 rounded-xl text-sm font-mono text-center">
-        <button type="submit" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button type="submit" class="px-5 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm"><i class="fa-solid fa-magnifying-glass"></i></button>
       </form>
       <div id="certVerifyResult" class="mt-6 text-left"></div>
     </div>

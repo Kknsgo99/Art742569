@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -28,8 +29,15 @@
       .cert-page { page-break-after: always; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
     }
   </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f97316">
 </head>
 <body class="h-full font-['Sarabun'] antialiased text-slate-800">
+
+  <!-- CONNECTION BANNER -->
+  <div id="connectionBanner" class="hidden fixed top-0 inset-x-0 z-[110] bg-amber-500 text-white text-xs font-semibold text-center py-1.5 shadow-md">
+    <i class="fa-solid fa-wifi-slash"></i> คุณออฟไลน์อยู่ — ข้อมูลบางส่วนอาจไม่เป็นปัจจุบันที่สุด การบันทึกจะถูกส่งอัตโนมัติเมื่อกลับมาออนไลน์
+  </div>
 
   <!-- LOADING OVERLAY -->
   <div id="globalLoading" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center gap-3">
@@ -108,6 +116,7 @@
           <p id="navUserDisplayName" class="text-sm font-semibold text-white truncate">-</p>
           <p id="navUserRole" class="text-xs text-indigo-400 truncate">-</p>
         </div>
+        <button onclick="Views.showOfflineQueueInfo()" id="offlineQueueBadge" class="hidden mr-1 px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded-full" title="รายการที่รอซิงค์">0</button>
         <button onclick="App.handleLogout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg" title="ออกจากระบบ">
           <i class="fa-solid fa-power-off"></i>
         </button>
@@ -176,7 +185,7 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbzFyT395o7ijJGlPdLR59gI8Y-Rgb0f3iGlVb-cJaM8-T3hmx0Rs0zeVdmWpagtDrG3/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbws2V0VI02ql1k_2IjguJG772EfG68QM1-M9UfqjxDLAAyioPzlXYbp-r-YXa_kMvGO5g/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
 
 const AppState = {
@@ -186,10 +195,80 @@ const AppState = {
   cache: {}
 };
 
+const OfflineQueue = {
+  KEY: 'ART74_OFFLINE_QUEUE',
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch (e) { return []; }
+  },
+  add(requestData) {
+    const queue = this.getAll();
+    queue.push(Object.assign({}, requestData, { queuedAt: new Date().toISOString() }));
+    localStorage.setItem(this.KEY, JSON.stringify(queue));
+    this.updateBadge();
+  },
+  clear() {
+    localStorage.removeItem(this.KEY);
+    this.updateBadge();
+  },
+  updateBadge() {
+    const badge = document.getElementById('offlineQueueBadge');
+    if (!badge) return;
+    const count = this.getAll().length;
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+  },
+  async flush() {
+    const queue = this.getAll();
+    if (queue.length === 0) return;
+    Components.toast('info', `กำลังซิงค์ข้อมูลที่ค้างไว้ ${queue.length} รายการ...`);
+    let successCount = 0, failCount = 0;
+    for (const item of queue) {
+      try { await API._dispatch(item); successCount++; }
+      catch (e) { failCount++; }
+    }
+    this.clear();
+    if (successCount > 0) {
+      Components.toast('success', `ซิงค์สำเร็จ ${successCount} รายการ` + (failCount > 0 ? ` (ล้มเหลว ${failCount} รายการ กรุณาทำรายการนั้นใหม่)` : ''));
+    } else if (failCount > 0) {
+      Swal.fire('ซิงค์ไม่สำเร็จ', `มี ${failCount} รายการที่ซิงค์ไม่สำเร็จ กรุณาทำรายการเหล่านั้นใหม่อีกครั้ง`, 'warning');
+    }
+    if (AppState.currentView) App.navigate(AppState.currentView);
+  }
+};
+
 const API = {
+  // อ่าน (get.../verify.../globalSearch) แคชผลลัพธ์ล่าสุดไว้ใน localStorage
+  // เพื่อให้แสดงข้อมูลได้แม้ตอนออฟไลน์ (ข้อมูลอาจไม่ใช่ปัจจุบันที่สุด)
+  // คำสั่งที่แก้ไขข้อมูล (save/submit/approve ฯลฯ) จะถูกเก็บเข้าคิวแทนตอนออฟไลน์
+  // แล้วส่งอัตโนมัติเมื่อกลับมาออนไลน์ (ดู OfflineQueue.flush)
   async call(action, payload = {}) {
     const requestData = { action, token: AppState.token, payload };
+    const isReadAction = /^(get|verify|globalSearch)/.test(action);
+    const cacheKey = 'offline_cache::' + action + '::' + JSON.stringify(payload);
 
+    if (!navigator.onLine) {
+      if (isReadAction) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          Components.toast('warning', 'ออฟไลน์ — แสดงข้อมูลที่บันทึกไว้ล่าสุด');
+          return JSON.parse(cached);
+        }
+        Swal.fire('ออฟไลน์', 'ยังไม่มีข้อมูลที่บันทึกไว้สำหรับส่วนนี้ กรุณาเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่', 'warning');
+        throw new Error('OFFLINE_NO_CACHE');
+      }
+      OfflineQueue.add(requestData);
+      Swal.fire({ icon: 'info', title: 'บันทึกคำขอไว้แบบออฟไลน์', text: 'ระบบจะส่งให้อัตโนมัติเมื่อกลับมาออนไลน์', timer: 2500, showConfirmButton: false });
+      throw new Error('QUEUED_OFFLINE');
+    }
+
+    const data = await this._dispatch(requestData);
+    if (isReadAction) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) { /* localStorage เต็มโควต้า — ข้ามได้ ไม่กระทบการทำงานหลัก */ }
+    }
+    return data;
+  },
+
+  async _dispatch(requestData) {
     const handleResponse = (response) => {
       if (typeof response === 'string') {
         try { response = JSON.parse(response); } catch (e) {
@@ -262,6 +341,17 @@ const API = {
   }
 };
 
+window.addEventListener('online', () => {
+  const banner = document.getElementById('connectionBanner');
+  if (banner) banner.classList.add('hidden');
+  OfflineQueue.flush();
+});
+window.addEventListener('offline', () => {
+  const banner = document.getElementById('connectionBanner');
+  if (banner) banner.classList.remove('hidden');
+  Components.toast('warning', 'คุณออฟไลน์อยู่ — ข้อมูลบางส่วนอาจไม่เป็นปัจจุบันที่สุด');
+});
+
 /**
  * ============================================================================
  * MAIN APP CONTROLLER
@@ -270,6 +360,8 @@ const API = {
 const App = {
   async init() {
     document.getElementById('globalLoading').classList.remove('hidden');
+    if (!navigator.onLine) document.getElementById('connectionBanner').classList.remove('hidden');
+    OfflineQueue.updateBadge();
     if (AppState.token) {
       try {
         const user = await API.call('verifySession');
@@ -432,6 +524,17 @@ const App = {
 };
 
 window.addEventListener('DOMContentLoaded', () => { App.init(); });
+
+// ลงทะเบียน Service Worker เฉพาะตอนไม่ได้รันอยู่ใน Apps Script HtmlService
+// (google.script.run ใช้ไม่ได้ = แปลว่ากำลังโฮสต์แบบ static เช่น GitHub Pages)
+// เพราะ iframe sandbox ของ Apps Script ไม่อนุญาตให้ลงทะเบียน Service Worker
+if (!(typeof google !== 'undefined' && google.script && google.script.run) && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch((err) => {
+      console.warn('Service worker registration failed (ไม่กระทบการทำงานหลักของแอป):', err);
+    });
+  });
+}
 
 /**
  * ============================================================================
@@ -937,6 +1040,17 @@ Views.openRegistrationModal = function (regId) {
         </select>
         <p id="activityHint" class="text-xs text-slate-400 mt-1"></p>
       </div>
+      <div class="flex flex-wrap items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+        <i class="fa-solid fa-file-excel text-emerald-600"></i>
+        <span class="text-xs text-emerald-800 font-medium">นำเข้ารายชื่อจาก Excel ได้ (แทนการพิมพ์ทีละคน)</span>
+        <button type="button" onclick="Views.downloadRegImportTemplate()" class="ml-auto text-xs px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-100">
+          <i class="fa-solid fa-download"></i> ดาวน์โหลดเทมเพลต
+        </button>
+        <label class="text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold cursor-pointer">
+          <i class="fa-solid fa-upload"></i> นำเข้าไฟล์
+          <input type="file" accept=".xlsx,.xls" class="hidden" onchange="Views.handleRegImportFile(event)">
+        </label>
+      </div>
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="text-sm font-semibold text-slate-700">รายชื่อนักเรียน</label>
@@ -995,6 +1109,73 @@ Views.onActivityChangeForReg = function () {
     for (let i = 0; i < studentCount; i++) this.addStudentRow();
     for (let i = 0; i < teacherCount; i++) this.addTeacherRow();
   }
+};
+
+Views.showOfflineQueueInfo = function () {
+  const queue = OfflineQueue.getAll();
+  if (queue.length === 0) {
+    Swal.fire('ไม่มีรายการค้าง', 'ไม่มีคำขอที่รอซิงค์อยู่ในขณะนี้', 'info');
+    return;
+  }
+  const list = queue.map(q => `<li class="text-xs py-1 border-b border-slate-100">${escapeHtml(q.action)} — ${new Date(q.queuedAt).toLocaleString('th-TH')}</li>`).join('');
+  Swal.fire({
+    title: `รายการที่รอซิงค์ (${queue.length})`,
+    html: `<ul class="text-left">${list}</ul><p class="text-xs text-slate-400 mt-3">จะส่งอัตโนมัติเมื่อเชื่อมต่ออินเทอร์เน็ตได้</p>`,
+    confirmButtonText: 'ปิด'
+  });
+};
+
+Views.downloadRegImportTemplate = function () {
+  const wb = XLSX.utils.book_new();
+  const studentSheet = XLSX.utils.aoa_to_sheet([
+    ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'ชั้น', 'รหัสนักเรียน'],
+    ['เด็กชาย', 'ตัวอย่าง', 'ใจดี', 'ป.6', '12345']
+  ]);
+  const teacherSheet = XLSX.utils.aoa_to_sheet([
+    ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'ตำแหน่ง', 'โทรศัพท์'],
+    ['นาย', 'ตัวอย่าง', 'ครูดี', 'ครูผู้ฝึกสอน', '0800000000']
+  ]);
+  XLSX.utils.book_append_sheet(wb, studentSheet, 'นักเรียน');
+  XLSX.utils.book_append_sheet(wb, teacherSheet, 'ครู');
+  XLSX.writeFile(wb, 'เทมเพลตนำเข้ารายชื่อ.xlsx');
+};
+
+Views.handleRegImportFile = function (event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      let importedStudents = 0, importedTeachers = 0;
+
+      if (wb.SheetNames.includes('นักเรียน')) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets['นักเรียน'], { header: 1 }).slice(1);
+        document.getElementById('studentRows').innerHTML = '';
+        this._studentRowSeq = 0;
+        rows.forEach(r => {
+          if (!r || !r[1]) return;
+          this.addStudentRow({ prefix: r[0] || 'เด็กชาย', firstName: r[1] || '', lastName: r[2] || '', grade: r[3] || '', studentCode: r[4] || '' });
+          importedStudents++;
+        });
+      }
+      if (wb.SheetNames.includes('ครู')) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets['ครู'], { header: 1 }).slice(1);
+        document.getElementById('teacherRows').innerHTML = '';
+        this._teacherRowSeq = 0;
+        rows.forEach(r => {
+          if (!r || !r[1]) return;
+          this.addTeacherRow({ prefix: r[0] || 'นาย', firstName: r[1] || '', lastName: r[2] || '', position: r[3] || 'ครู', phone: r[4] || '' });
+          importedTeachers++;
+        });
+      }
+      Components.toast('success', `นำเข้าสำเร็จ: นักเรียน ${importedStudents} คน, ครู ${importedTeachers} คน`);
+    } catch (err) {
+      Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถอ่านไฟล์ Excel ได้ กรุณาตรวจสอบว่าใช้เทมเพลตที่ถูกต้อง', 'error');
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
 };
 
 Views.addStudentRow = function (data) {
@@ -1360,10 +1541,17 @@ Views.paintSchoolsTable = function (page) {
         <input type="text" placeholder="ค้นหา..." oninput="Views.searchSchools(this.value)" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button onclick="exportTableToCSV(Views._schoolCache, 'schools')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-file-csv"></i> Export
         </button>
+        <button onclick="Views.downloadSchoolImportTemplate()" class="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-file-excel"></i> เทมเพลตนำเข้า
+        </button>
+        <label class="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-upload"></i> นำเข้าจาก Excel
+          <input type="file" accept=".xlsx,.xls" class="hidden" onchange="Views.handleSchoolImportFile(event)">
+        </label>
         <button onclick="Views.openSchoolModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> เพิ่มโรงเรียน
         </button>
@@ -1402,6 +1590,49 @@ Views.paintSchoolsTable = function (page) {
 };
 
 Views.searchSchools = function (q) { TableUX.search('schools', q); this.paintSchoolsTable(1); };
+
+Views.downloadSchoolImportTemplate = function () {
+  const wb = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['รหัสโรงเรียน', 'ชื่อโรงเรียน', 'ชื่อย่อ', 'ชื่อผู้อำนวยการ', 'ที่อยู่', 'โทรศัพท์', 'อีเมล', 'Username', 'รหัสผ่าน (เว้นว่าง = 123456)'],
+    ['SCH001', 'โรงเรียนตัวอย่าง', 'ตย.', 'นายตัวอย่าง ใจดี', 'ที่อยู่โรงเรียน', '0800000000', 'school@example.com', 'sch001', '']
+  ]);
+  XLSX.utils.book_append_sheet(wb, sheet, 'โรงเรียน');
+  XLSX.writeFile(wb, 'เทมเพลตนำเข้าโรงเรียน.xlsx');
+};
+
+Views.handleSchoolImportFile = function (event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheetName = wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 }).slice(1);
+      const schools = rows.filter(r => r && r[0]).map(r => ({
+        schoolCode: String(r[0] || ''), schoolName: String(r[1] || ''),
+        shortName: String(r[2] || ''), directorName: String(r[3] || ''),
+        address: String(r[4] || ''), phone: String(r[5] || ''),
+        email: String(r[6] || ''), username: String(r[7] || ''), password: String(r[8] || '')
+      }));
+      if (schools.length === 0) {
+        Swal.fire('แจ้งเตือน', 'ไม่พบข้อมูลในไฟล์ที่นำเข้า', 'warning');
+        return;
+      }
+      const result = await API.call('bulkImportSchools', { schools });
+      const skipped = result.results.filter(r => r.status === 'ข้าม');
+      let msg = `นำเข้าสำเร็จ ${result.imported} จาก ${result.total} แถว`;
+      if (skipped.length > 0) msg += ` (ข้าม ${skipped.length} แถว: ${skipped.slice(0, 3).map(s => 'แถว ' + s.row + ' - ' + s.reason).join(', ')}${skipped.length > 3 ? ' ...' : ''})`;
+      Swal.fire(result.imported > 0 ? 'สำเร็จ' : 'แจ้งเตือน', msg, result.imported > 0 ? 'success' : 'warning');
+      this.renderSchools();
+    } catch (err) {
+      // error handled by API.call
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+};
 
 Views.openSchoolModal = function (schoolId) {
   const s = schoolId ? this._schoolCache.find(x => x.schoolId === schoolId) : null;
@@ -1793,8 +2024,9 @@ Views.renderSettings = async function () {
   const container = document.getElementById('mainContent');
   container.innerHTML = Components.skeletonTable();
   try {
-    const settings = await API.call('getSettings');
+    const [settings, backups] = await Promise.all([API.call('getSettings'), API.call('getBackupList')]);
     this._settingsCache = settings;
+    this._backupCache = backups;
     this.paintSettings();
   } catch (e) {
     container.innerHTML = Components.errorState('เกิดข้อผิดพลาดในการโหลดข้อมูล');
@@ -1804,6 +2036,7 @@ Views.renderSettings = async function () {
 Views.paintSettings = function () {
   const container = document.getElementById('mainContent');
   const rows = this._settingsCache;
+  const backups = this._backupCache || [];
   let html = `
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
@@ -1814,6 +2047,32 @@ Views.paintSettings = function () {
         <i class="fa-solid fa-database"></i> ตั้งค่าฐานข้อมูล
       </button>
     </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 class="font-bold text-slate-800">สำรองฐานข้อมูล</h3>
+          <p class="text-xs text-slate-400 mt-1">ระบบสำรองอัตโนมัติทุกวัน 02:00 น. (ถ้าตั้งค่า trigger ไว้แล้ว) หรือกดสำรองด้วยตนเองได้ทุกเมื่อ · เก็บย้อนหลังล่าสุด 30 ชุด</p>
+        </div>
+        <button onclick="Views.runManualBackup()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md flex-shrink-0">
+          <i class="fa-solid fa-cloud-arrow-up"></i> สำรองข้อมูลตอนนี้
+        </button>
+      </div>
+      <div class="border-t border-slate-100 pt-4">
+        <p class="text-xs font-semibold text-slate-500 mb-2">ประวัติการสำรองข้อมูล (${backups.length} ชุด)</p>
+        <div class="max-h-56 overflow-y-auto space-y-1.5">
+          ${backups.length === 0 ? '<p class="text-xs text-slate-400">ยังไม่มีสำเนาสำรอง</p>' : backups.map(b => `
+            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg text-xs">
+              <span class="font-mono text-slate-600">${escapeHtml(b.name)}</span>
+              <div class="flex items-center gap-3 text-slate-400">
+                <span>${Components.formatDateThai(b.createdAt)}</span>
+                <a href="${encodeURI(b.url)}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-external-link"></i></a>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
@@ -1833,6 +2092,15 @@ Views.paintSettings = function () {
   });
   html += `</tbody></table></div></div>`;
   container.innerHTML = html;
+};
+
+Views.runManualBackup = async function () {
+  Components.toast('info', 'กำลังสำรองข้อมูล...');
+  try {
+    await API.call('runManualBackup');
+    Components.toast('success', 'สำรองข้อมูลสำเร็จ');
+    this.renderSettings();
+  } catch (e) {}
 };
 
 Views.saveOneSetting = async function (key) {

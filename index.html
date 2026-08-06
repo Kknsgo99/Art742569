@@ -46,34 +46,84 @@
   </div>
 
   <!-- LOGIN VIEW -->
-  <div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 px-4">
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-slate-100">
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 text-orange-500 mb-4 shadow-inner">
+<div id="loginView" class="hidden min-h-screen flex flex-col md:flex-row">
+    <!-- LEFT PANE: Branding -->
+    <div class="w-full md:w-1/2 bg-gradient-to-br from-orange-500 via-orange-400 to-blue-700 relative overflow-hidden flex items-center justify-center px-8 py-16 md:py-0">
+      <div class="absolute -top-16 -left-16 w-64 h-64 bg-white/10 rounded-full"></div>
+      <div class="absolute bottom-0 right-0 w-80 h-80 bg-blue-900/20 rounded-full translate-x-1/3 translate-y-1/3"></div>
+      <div class="absolute top-1/3 right-10 w-24 h-24 bg-yellow-300/20 rounded-full"></div>
+      <div class="relative z-10 text-white max-w-md text-center md:text-left">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 backdrop-blur mb-6 shadow-lg">
           <i class="fa-solid fa-award text-3xl"></i>
         </div>
-        <h2 class="text-2xl font-bold text-slate-800">ศิลปหัตถกรรมนักเรียน ครั้งที่ 74</h2>
-        <p class="text-sm text-slate-500 mt-1">กลุ่มโรงเรียนโนนสมบูรณ์นาสวรรค์คำนาดี</p>
-        <p class="text-xs text-slate-400 mt-1">ปีการศึกษา 2569 · วันที่ 3-4 กันยายน 2569</p>
+        <h1 class="text-2xl md:text-3xl font-bold leading-snug mb-3">การจัดการแข่งขันงานศิลปหัตถกรรมนักเรียน ครั้งที่ 74</h1>
+        <p class="text-white/90 text-sm mb-1">ระบบบริหารจัดการแข่งขันวิชาการ</p>
+        <p class="text-white/75 text-sm">กลุ่มโรงเรียนโนนสมบูรณ์นาสวรรค์คำนาดี · ปีการศึกษา 2569</p>
+        <div class="flex flex-wrap gap-2 mt-6 justify-center md:justify-start">
+          <span class="px-3 py-1.5 bg-white/15 backdrop-blur rounded-full text-xs font-medium flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> ระบบเปิดปกติ</span>
+          <span class="px-3 py-1.5 bg-white/15 backdrop-blur rounded-full text-xs font-medium flex items-center gap-1.5"><i class="fa-solid fa-calendar"></i> 3-4 กันยายน 2569</span>
+        </div>
       </div>
+    </div>
 
-      <form id="loginForm" onsubmit="App.handleLogin(event)" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
-          <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 text-sm">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน (Password)</label>
-          <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 text-sm">
-        </div>
-        <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-          <span>เข้าสู่ระบบ</span>
-          <i class="fa-solid fa-arrow-right-to-bracket"></i>
-        </button>
-        <button type="button" onclick="Views.showPublicResults()" class="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-sm">
-          <i class="fa-solid fa-trophy"></i> ดูประกาศผลการแข่งขัน (สาธารณะ)
-        </button>
-      </form>
+    <!-- RIGHT PANE: Login Form -->
+    <div class="w-full md:w-1/2 bg-white flex items-center justify-center px-6 py-12">
+      <div class="max-w-sm w-full">
+        <h2 class="text-2xl font-bold text-slate-800 mb-1">เข้าสู่ระบบ</h2>
+        <p class="text-sm text-slate-400 mb-8">กรอกชื่อผู้ใช้งานและรหัสผ่านเพื่อเข้าใช้งานระบบ</p>
+
+        <form id="loginForm" onsubmit="App.handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้งานระบบ</label>
+            <div class="relative">
+              <i class="fa-solid fa-circle-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="text" id="loginUsername" required class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none text-sm" placeholder="ชื่อผู้ใช้งานระบบ">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน</label>
+            <div class="relative">
+              <i class="fa-solid fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input type="password" id="loginPassword" required class="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none text-sm" placeholder="รหัสผ่าน">
+              <button type="button" onclick="Views.togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i id="loginPasswordToggleIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="btnLoginSubmit" class="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2 mt-2">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> เข้าสู่ระบบ
+          </button>
+
+          <div class="flex gap-2">
+            <button type="button" onclick="Views.showForgotPasswordModal()" class="flex-1 py-2.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-xl transition flex items-center justify-center gap-1.5 text-xs">
+              <i class="fa-solid fa-circle-question"></i> ลืมรหัสผ่าน
+            </button>
+            <button type="reset" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-xl transition flex items-center justify-center gap-1.5 text-xs">
+              <i class="fa-solid fa-rotate-left"></i> ล้างค่า
+            </button>
+          </div>
+
+          <button type="button" onclick="Views.showPublicResults()" class="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-sm mt-1">
+            <i class="fa-solid fa-house"></i> หน้าหลักเว็บไซต์แข่งขัน
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div id="forgotPasswordModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-blue-600"></i> ลืมรหัสผ่าน</h3>
+        <button onclick="Views.hideForgotPasswordModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-slate-500 mb-4">กรุณาติดต่อผู้ดูแลระบบของหน่วยงานท่านเพื่อขอรีเซ็ตรหัสผ่าน โดยแจ้งชื่อผู้ใช้งานและชื่อโรงเรียน/หน่วยงานของท่าน</p>
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800">
+        <i class="fa-solid fa-circle-info mr-1"></i> ผู้ดูแลระบบสามารถรีเซ็ตรหัสผ่านให้ท่านได้ทันทีผ่านเมนู "จัดการโรงเรียน" หรือ "ผู้ใช้งานระบบ"
+      </div>
+      <button onclick="Views.hideForgotPasswordModal()" class="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold">ปิด</button>
     </div>
   </div>
 
@@ -185,8 +235,9 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbxQUYA2gEi_sOGs1F8mSoFD0nj5YK1TQAQ_sWQD5itIA7Zezd4DkZ8EhqvUfW_Sml35/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbwhdTYmPP5-MiKE3MMuSgCZcTU93aMgBJ8mhN_-swayRwBxBWS_INW-YLNHU-crTQ4H/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
+
 const AppState = {
   token: localStorage.getItem('ART74_TOKEN') || null,
   user: JSON.parse(localStorage.getItem('ART74_USER') || 'null'),
@@ -808,28 +859,179 @@ const Views = {
     this.renderPublicResultsPage('publicContent');
   },
 
+  togglePasswordVisibility() {
+    const input = document.getElementById('loginPassword');
+    const icon = document.getElementById('loginPasswordToggleIcon');
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    icon.className = isHidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+  },
+
+  showForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').classList.remove('hidden');
+  },
+
+  hideForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').classList.add('hidden');
+  },
+
+  buildPublicMenuGrid() {
+    const items = [
+      { icon: 'fa-trophy', color: 'bg-gradient-to-br from-amber-400 to-orange-500', label: 'ประกาศผลการแข่งขัน', action: "document.getElementById('publicResultsAnchor')?.scrollIntoView({behavior:'smooth'})" },
+      { icon: 'fa-qrcode', color: 'bg-gradient-to-br from-blue-400 to-blue-600', label: 'ตรวจสอบเกียรติบัตร', action: "Views.showPublicCertVerify()" },
+      { icon: 'fa-right-to-bracket', color: 'bg-gradient-to-br from-emerald-400 to-emerald-600', label: 'เข้าสู่ระบบจัดการ', action: "App.showLoginView()" }
+    ];
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 mb-6">
+        <h4 class="font-bold text-slate-800 flex items-center gap-2 mb-4"><i class="fa-solid fa-table-cells-large text-orange-500"></i> เมนูหลัก</h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+          ${items.map(it => `
+            <button onclick="${it.action}" class="flex flex-col items-center justify-center gap-2 p-4 md:p-6 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-2xl transition text-center">
+              <div class="w-14 h-14 rounded-full ${it.color} text-white flex items-center justify-center shadow"><i class="fa-solid ${it.icon} text-xl"></i></div>
+              <span class="text-sm font-semibold text-slate-700">${it.label}</span>
+            </button>`).join('')}
+        </div>
+      </div>
+      <div id="publicResultsAnchor"></div>`;
+  },
+
+  showPublicCertVerify() {
+    // certVerify ไม่ต้อง login ฝั่ง backend ก็ใช้ได้ แต่หน้า UI หลักต้องมี AppState.user
+    // ก่อนถึงจะ render sidebar ได้ จึงพาไปหน้า login ก่อน พร้อมคำแนะนำ
+    Swal.fire('ตรวจสอบเกียรติบัตร', 'กรุณาเข้าสู่ระบบก่อน แล้วไปที่เมนู "ตรวจสอบเกียรติบัตร" ในแถบด้านข้าง', 'info');
+    App.showLoginView();
+  },
+
+  exportResultsExcel() {
+    const data = this._publicResultsCache || [];
+    if (data.length === 0) { Components.toast('warning', 'ไม่มีข้อมูลสำหรับ Export'); return; }
+    const rows = data.map(r => ({
+      'รายการแข่งขัน': r.activityName, 'ระดับ': r.level, 'โรงเรียน': r.schoolName,
+      'คะแนน': r.finalScore, 'รางวัล': r.medal, 'อันดับ': r.rank
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ผลการแข่งขัน');
+    XLSX.writeFile(wb, 'ผลการแข่งขัน_ศิลปหัตถกรรม74.xlsx');
+  },
+
+  exportRankingExcel() {
+    const data = this._publicResultsCache || [];
+    if (data.length === 0) { Components.toast('warning', 'ไม่มีข้อมูลสำหรับ Export'); return; }
+    const bySchool = {};
+    data.forEach(r => {
+      if (!bySchool[r.schoolName]) bySchool[r.schoolName] = { schoolName: r.schoolName, gold: 0, silver: 0, bronze: 0, total: 0 };
+      const s = bySchool[r.schoolName];
+      if (r.medal === 'ทอง') s.gold++; else if (r.medal === 'เงิน') s.silver++; else if (r.medal === 'ทองแดง') s.bronze++;
+      s.total++;
+    });
+    const ranking = Object.values(bySchool).sort((a, b) => b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze);
+    const rows = ranking.map((s, i) => ({ 'อันดับ': i + 1, 'โรงเรียน': s.schoolName, 'ทอง': s.gold, 'เงิน': s.silver, 'ทองแดง': s.bronze, 'รวม': s.total }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'อันดับโรงเรียน');
+    XLSX.writeFile(wb, 'อันดับโรงเรียน_ศิลปหัตถกรรม74.xlsx');
+  },
+
   async renderPublicResultsPage(targetId) {
+    const isStandalone = !!targetId;
     const containerId = targetId || 'mainContent';
-    if (!targetId) document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
+    if (!isStandalone) document.getElementById('pageTitle').textContent = 'ประกาศผลการแข่งขัน';
     const container = document.getElementById(containerId);
     container.innerHTML = Components.skeletonTable();
 
     try {
       const results = await API.call('getPublicResults');
+      this._publicResultsCache = results || [];
+
       if (!results || results.length === 0) {
-        container.innerHTML = Components.emptyState('ยังไม่มีการประกาศผลการแข่งขัน', 'fa-trophy');
+        container.innerHTML = (isStandalone ? this.buildPublicMenuGrid() : '') + Components.emptyState('ยังไม่มีการประกาศผลการแข่งขัน', 'fa-trophy');
         return;
       }
-      let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
-            <tr>
-              <th class="p-4">รายการแข่งขัน</th><th class="p-4">โรงเรียน</th>
-              <th class="p-4 text-center">คะแนน</th><th class="p-4 text-center">รางวัล</th><th class="p-4 text-center">อันดับ</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">`;
+
+      // สรุปสถิติจากผลที่ประกาศแล้ว (คำนวณฝั่ง client จากข้อมูลที่มี ไม่ต้องเรียก API เพิ่ม)
+      const schoolSet = new Set(results.map(r => r.schoolName));
+      const activitySet = new Set(results.map(r => r.activityName));
+      const medalCount = { gold: 0, silver: 0, bronze: 0, participant: 0 };
+      results.forEach(r => {
+        if (r.medal === 'ทอง') medalCount.gold++;
+        else if (r.medal === 'เงิน') medalCount.silver++;
+        else if (r.medal === 'ทองแดง') medalCount.bronze++;
+        else medalCount.participant++;
+      });
+
+      // จัดอันดับโรงเรียนตามจำนวนเหรียญทอง (แบบเดียวกับตาราง "สรุปผลเรียงตามเหรียญ" ในเว็บต้นแบบ)
+      const bySchool = {};
+      results.forEach(r => {
+        if (!bySchool[r.schoolName]) bySchool[r.schoolName] = { schoolName: r.schoolName, gold: 0, silver: 0, bronze: 0, total: 0 };
+        const s = bySchool[r.schoolName];
+        if (r.medal === 'ทอง') s.gold++;
+        else if (r.medal === 'เงิน') s.silver++;
+        else if (r.medal === 'ทองแดง') s.bronze++;
+        s.total++;
+      });
+      const ranking = Object.values(bySchool).sort((a, b) => b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze);
+
+      let html = isStandalone ? this.buildPublicMenuGrid() : '';
+
+      html += `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 text-center">
+            <div class="w-11 h-11 mx-auto mb-2 rounded-full bg-blue-500 text-white flex items-center justify-center"><i class="fa-solid fa-school"></i></div>
+            <div class="text-xl font-bold text-slate-800">${schoolSet.size}</div><div class="text-xs text-slate-400">โรงเรียนที่ได้รับรางวัล</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 text-center">
+            <div class="w-11 h-11 mx-auto mb-2 rounded-full bg-orange-500 text-white flex items-center justify-center"><i class="fa-solid fa-list-check"></i></div>
+            <div class="text-xl font-bold text-slate-800">${activitySet.size}</div><div class="text-xs text-slate-400">รายการที่ประกาศผลแล้ว</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 text-center">
+            <div class="w-11 h-11 mx-auto mb-2 rounded-full bg-amber-500 text-white flex items-center justify-center"><i class="fa-solid fa-trophy"></i></div>
+            <div class="text-xl font-bold text-slate-800">${medalCount.gold}</div><div class="text-xs text-slate-400">เหรียญทอง</div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 text-center">
+            <div class="w-11 h-11 mx-auto mb-2 rounded-full bg-emerald-500 text-white flex items-center justify-center"><i class="fa-solid fa-medal"></i></div>
+            <div class="text-xl font-bold text-slate-800">${results.length}</div><div class="text-xs text-slate-400">รวมรายการรางวัลทั้งหมด</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-ranking-star text-orange-500"></i> สรุปอันดับโรงเรียนตามเหรียญรางวัล</h4>
+            <button onclick="Views.exportRankingExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> ส่งออก Excel</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+                <tr><th class="p-3 text-center w-16">อันดับ</th><th class="p-3">โรงเรียน</th><th class="p-3 text-center">ทอง</th><th class="p-3 text-center">เงิน</th><th class="p-3 text-center">ทองแดง</th><th class="p-3 text-center">รวม</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${ranking.map((s, i) => `<tr class="hover:bg-slate-50">
+                  <td class="p-3 text-center font-bold text-orange-600">${i + 1}</td>
+                  <td class="p-3 font-medium text-slate-800">${escapeHtml(s.schoolName)}</td>
+                  <td class="p-3 text-center font-bold text-amber-600">${s.gold}</td>
+                  <td class="p-3 text-center font-bold text-slate-500">${s.silver}</td>
+                  <td class="p-3 text-center font-bold" style="color:#b45309">${s.bronze}</td>
+                  <td class="p-3 text-center font-bold text-blue-600">${s.total}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="flex justify-between items-center p-4 md:p-6 pb-0">
+            <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-list-ol text-blue-500"></i> รายละเอียดผลการแข่งขัน</h4>
+            <button onclick="Views.exportResultsExcel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> ส่งออก Excel</button>
+          </div>
+          <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-100 text-slate-600">
+              <tr>
+                <th class="p-4">รายการแข่งขัน</th><th class="p-4">โรงเรียน</th>
+                <th class="p-4 text-center">คะแนน</th><th class="p-4 text-center">รางวัล</th><th class="p-4 text-center">อันดับ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">`;
       results.forEach(r => {
         html += `<tr class="hover:bg-slate-50">
           <td class="p-4 font-semibold text-slate-800">${escapeHtml(r.activityName)}<div class="text-xs text-slate-400">${escapeHtml(r.level)}</div></td>

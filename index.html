@@ -269,7 +269,7 @@ function escapeHtml(value) {
  * ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
  */
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbwcg0FMgKEkwyzv8dGzlqKwLn4XBGaJWuTmktqUWCFDrZO8NNZZjkK4uM9HOb0ru0xa/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
+  API_URL: "https://script.google.com/macros/s/AKfycbylnqenNeXS8N2TTmwK_2WXOJmioUVpnCO6dTkfrn4cEDE_rfwc5GV-9bYzJ9-Q-b6S/exec" // <-- ใส่ Web App URL ที่ Deploy แล้วตรงนี้ ถ้าโฮสต์หน้านี้บน GitHub Pages
 };
 
 const AppState = {
@@ -977,15 +977,39 @@ const Views = {
     container.innerHTML = Components.skeletonTable();
 
     try {
-      const [results, stats, schedules, criteria] = await Promise.all([
+      const [results, stats, schedules, criteria, systemStatus] = await Promise.all([
         API.call('getPublicResults'),
         API.call('getPublicStats').catch(() => null),
         API.call('getPublicSchedules').catch(() => []),
-        API.call('getPublicCriteria').catch(() => [])
+        API.call('getPublicCriteria').catch(() => []),
+        API.call('getPublicSystemStatus').catch(() => null)
       ]);
       this._publicResultsCache = results || [];
 
       let html = isStandalone ? this.buildPublicMenuGrid() : '';
+
+      // แถบสถานะเปิด/ปิดรับสมัคร + สถานะระบบเกียรติบัตร (อัปเดตโดย Admin)
+      if (systemStatus && systemStatus.registration) {
+        const reg = systemStatus.registration;
+        const certOpen = systemStatus.certificateStatus !== 'CLOSED';
+        let regText;
+        if (reg.isOpen) {
+          regText = reg.endDate ? `เปิดรับสมัครอยู่ในขณะนี้ · ปิดรับสมัครวันที่ ${escapeHtml(reg.endDate)}` : 'เปิดรับสมัครอยู่ในขณะนี้';
+        } else {
+          regText = reg.reason || 'ปิดรับสมัครแล้ว';
+        }
+        html += `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div class="flex items-center gap-3 p-4 rounded-2xl border ${reg.isOpen ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-700'}">
+            <i class="fa-solid ${reg.isOpen ? 'fa-lock-open' : 'fa-lock'} text-lg"></i>
+            <div class="text-sm font-medium">${regText}</div>
+          </div>
+          <div class="flex items-center gap-3 p-4 rounded-2xl border ${certOpen ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-slate-100 border-slate-200 text-slate-500'}">
+            <i class="fa-solid ${certOpen ? 'fa-certificate' : 'fa-ban'} text-lg"></i>
+            <div class="text-sm font-medium">${certOpen ? 'ระบบเกียรติบัตรเปิดใช้งานอยู่' : 'ระบบเกียรติบัตรปิดใช้งานชั่วคราว'}</div>
+          </div>
+        </div>`;
+      }
 
       // สถิติการสมัครแข่งขัน (ไม่ขึ้นกับว่าประกาศผลแล้วหรือยัง)
       if (stats) {
@@ -1229,6 +1253,9 @@ Views.paintRegistrationsTable = function (page) {
         <button onclick="exportTableToCSV(Views._regCache, 'registrations')" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-file-csv"></i> Export
         </button>
+        ${isSchool ? `<button onclick="Views.openBulkImportModal()" class="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-file-import"></i> นำเข้าทั้งโรงเรียน (ทุกกิจกรรม)
+        </button>` : ''}
         ${isSchool ? `<button onclick="Views.openRegistrationModal()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> สมัครเข้าแข่งขัน
         </button>` : ''}
@@ -1297,12 +1324,12 @@ Views.viewRegistrationDetail = function (regId) {
       </button>` : `<span class="px-3 py-2 text-xs text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> พิมพ์บัตรประจำตัวได้หลังอนุมัติแล้ว</span>`}
     </div>
     <h4 class="font-bold text-slate-700 pt-2 border-t">รายชื่อนักเรียน (${r.students.length})</h4>
-    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ชั้น</th><th class="text-left py-1">รหัสนักเรียน</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
-      ${r.students.map(s => `<tr class="border-t"><td class="py-1.5">${escapeHtml(s.fullName)}</td><td class="py-1.5">${escapeHtml(s.grade)}</td><td class="py-1.5">${escapeHtml(s.studentCode) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${s.id}','นักเรียน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
+    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
+      ${r.students.map(s => `<tr class="border-t"><td class="py-1.5">${escapeHtml(s.fullName)}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${s.id}','นักเรียน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
     </tbody></table>
     <h4 class="font-bold text-slate-700 pt-2 border-t">ครูผู้ควบคุม (${r.teachers.length})</h4>
-    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">ตำแหน่ง</th><th class="text-left py-1">โทรศัพท์</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
-      ${r.teachers.map(t => `<tr class="border-t"><td class="py-1.5">${escapeHtml(t.fullName)}</td><td class="py-1.5">${escapeHtml(t.position)}</td><td class="py-1.5">${escapeHtml(t.phone) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${t.id}','ครูผู้ฝึกสอน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
+    <table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="text-left py-1">ชื่อ-สกุล</th><th class="text-left py-1">โทรศัพท์</th>${canPrintCards ? '<th class="text-center py-1">บัตร</th>' : ''}</tr></thead><tbody>
+      ${r.teachers.map(t => `<tr class="border-t"><td class="py-1.5">${escapeHtml(t.fullName)}</td><td class="py-1.5">${escapeHtml(t.phone) || '-'}</td>${canPrintCards ? `<td class="py-1.5 text-center"><button onclick="Views.generateOneIdCard('${r.registrationId}','${t.id}','ครูผู้ฝึกสอน')" class="text-orange-500 hover:text-blue-800" title="พิมพ์บัตร"><i class="fa-solid fa-id-card"></i></button></td>` : ''}</tr>`).join('')}
     </tbody></table>
     ${r.notes ? `<div class="pt-2 border-t"><p class="text-slate-400 text-xs">หมายเหตุ</p><p>${escapeHtml(r.notes)}</p></div>` : ''}
   </div>`;
@@ -1336,21 +1363,51 @@ Views.generateAllIdCards = async function (registrationId) {
   } catch (e) {}
 };
 
-Views.openRegistrationModal = function (regId) {
+Views.openRegistrationModal = async function (regId) {
+  // เช็คสถานะเปิด/ปิดรับสมัครก่อนเปิดฟอร์ม (เฉพาะสมัครใหม่ — แก้ไขใบร่างเดิมยังทำได้
+  // ถ้าปิดรับสมัครไปแล้วระหว่างทาง ระบบฝั่งเซิร์ฟเวอร์จะปฏิเสธตอนบันทึกอยู่ดี)
+  if (!regId) {
+    try {
+      const status = await API.call('getPublicSystemStatus');
+      if (status && status.registration && !status.registration.isOpen) {
+        Swal.fire('ปิดรับสมัครแล้ว', status.registration.reason || 'ขณะนี้ไม่อยู่ในช่วงเปิดรับสมัคร', 'warning');
+        return;
+      }
+    } catch (e) { /* ถ้าเช็คไม่ได้ ปล่อยให้ไปเจอด่านตรวจฝั่งเซิร์ฟเวอร์ตอนบันทึกแทน */ }
+  }
+
   const reg = regId ? this._regCache.find(r => r.registrationId === regId) : null;
   const activities = this._activityCache.filter(a => a.status === 'ACTIVE');
   this._editingRegistration = !!reg;
+  this._regActivityPool = activities;
+
+  const categories = [...new Set(activities.map(a => a.category).filter(Boolean))];
+  const selectedActivity = reg ? activities.find(a => a.activityId === reg.activityId) : null;
 
   let html = `
     <form id="regForm" onsubmit="Views.submitRegistrationForm(event, '${regId || ''}')" class="space-y-5">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">รายการแข่งขัน *</label>
-        <select id="regActivitySelect" ${reg ? 'disabled' : ''} required onchange="Views.onActivityChangeForReg()" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-          <option value="">-- เลือกรายการแข่งขัน --</option>
-          ${activities.map(a => `<option value="${a.activityId}" data-min-s="${a.minStudents}" data-max-s="${a.maxStudents}" data-min-t="${a.minTeachers}" data-max-t="${a.maxTeachers}" ${reg && reg.activityId === a.activityId ? 'selected' : ''}>${escapeHtml(a.activityCode)} - ${escapeHtml(a.activityName)} (${escapeHtml(a.level)})</option>`).join('')}
-        </select>
-        <p id="activityHint" class="text-xs text-slate-400 mt-1"></p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">1. กลุ่มสาระ *</label>
+          <select id="regCategorySelect" ${reg ? 'disabled' : ''} required onchange="Views.onCategoryChangeForReg()" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
+            <option value="">-- เลือกกลุ่มสาระ --</option>
+            ${categories.map(c => `<option value="${escapeHtml(c)}" ${selectedActivity && selectedActivity.category === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">2. กิจกรรม *</label>
+          <select id="regActivityNameSelect" disabled required onchange="Views.onActivityNameChangeForReg()" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
+            <option value="">-- เลือกกลุ่มสาระก่อน --</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">3. ระดับชั้น *</label>
+          <select id="regActivitySelect" disabled required onchange="Views.onActivityChangeForReg()" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
+            <option value="">-- เลือกกิจกรรมก่อน --</option>
+          </select>
+        </div>
       </div>
+      <p id="activityHint" class="text-xs text-slate-400 mt-1"></p>
       <div class="flex flex-wrap items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
         <i class="fa-solid fa-file-excel text-emerald-600"></i>
         <span class="text-xs text-emerald-800 font-medium">นำเข้ารายชื่อจาก Excel ได้ (แทนการพิมพ์ทีละคน)</span>
@@ -1364,14 +1421,14 @@ Views.openRegistrationModal = function (regId) {
       </div>
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-semibold text-slate-700">รายชื่อนักเรียน</label>
+          <label class="text-sm font-semibold text-slate-700">รายชื่อนักเรียน (คำนำหน้า / ชื่อ / นามสกุล)</label>
           <button type="button" onclick="Views.addStudentRow()" class="text-xs px-2 py-1 bg-orange-50 text-orange-500 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มนักเรียน</button>
         </div>
         <div id="studentRows" class="space-y-2"></div>
       </div>
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-semibold text-slate-700">ครูผู้ควบคุม</label>
+          <label class="text-sm font-semibold text-slate-700">ครูผู้ควบคุม (คำนำหน้า / ชื่อ / นามสกุล / เบอร์โทรศัพท์)</label>
           <button type="button" onclick="Views.addTeacherRow()" class="text-xs px-2 py-1 bg-orange-50 text-orange-500 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> เพิ่มครู</button>
         </div>
         <div id="teacherRows" class="space-y-2"></div>
@@ -1387,13 +1444,65 @@ Views.openRegistrationModal = function (regId) {
   `;
   Components.openModal(reg ? 'แก้ไขการสมัคร: ' + reg.registrationNo : 'สมัครเข้าแข่งขันใหม่', html);
 
-  if (reg) {
-    // แก้ไขใบสมัครเดิม — โหลดรายชื่อที่บันทึกไว้แล้วตามจริง ไม่สร้างช่องใหม่ทับ
+  if (reg && selectedActivity) {
+    // แก้ไขใบสมัครเดิม — ตั้งค่ากลุ่มสาระ/กิจกรรม/ระดับชั้นให้ตรงกับของเดิม แล้วปิด
+    // การแก้ไข (เปลี่ยนรายการแข่งขันระหว่างแก้ไขใบสมัครไม่ได้) และโหลดรายชื่อที่
+    // บันทึกไว้แล้วตามจริง ไม่สร้างช่องใหม่ทับ
+    this.prefillRegistrationSelects(selectedActivity);
+    document.getElementById('regCategorySelect').disabled = true;
+    document.getElementById('regActivityNameSelect').disabled = true;
+    document.getElementById('regActivitySelect').disabled = true;
     reg.students.forEach(s => this.addStudentRow(s));
     reg.teachers.forEach(t => this.addTeacherRow(t));
-    this.onActivityChangeForReg();
   }
-  // กรณีสมัครใหม่: ยังไม่สร้างช่องกรอกจนกว่าจะเลือกรายการแข่งขัน (ดู onActivityChangeForReg)
+  // กรณีสมัครใหม่: ยังไม่สร้างช่องกรอกจนกว่าจะเลือกครบทั้งกลุ่มสาระ/กิจกรรม/ระดับชั้น
+};
+
+Views.onCategoryChangeForReg = function () {
+  const cat = document.getElementById('regCategorySelect').value;
+  const nameSel = document.getElementById('regActivityNameSelect');
+  const levelSel = document.getElementById('regActivitySelect');
+  const pool = (this._regActivityPool || []).filter(a => a.category === cat);
+  const names = [...new Set(pool.map(a => a.activityName))];
+
+  nameSel.disabled = !cat;
+  nameSel.innerHTML = cat
+    ? `<option value="">-- เลือกกิจกรรม --</option>` + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')
+    : `<option value="">-- เลือกกลุ่มสาระก่อน --</option>`;
+
+  levelSel.disabled = true;
+  levelSel.innerHTML = `<option value="">-- เลือกกิจกรรมก่อน --</option>`;
+  document.getElementById('activityHint').textContent = '';
+};
+
+Views.onActivityNameChangeForReg = function () {
+  const cat = document.getElementById('regCategorySelect').value;
+  const name = document.getElementById('regActivityNameSelect').value;
+  const levelSel = document.getElementById('regActivitySelect');
+  const pool = (this._regActivityPool || []).filter(a => a.category === cat && a.activityName === name);
+
+  levelSel.disabled = !name;
+  levelSel.innerHTML = name
+    ? `<option value="">-- เลือกระดับชั้น --</option>` + pool.map(a =>
+        `<option value="${a.activityId}" data-min-s="${a.minStudents}" data-max-s="${a.maxStudents}" data-min-t="${a.minTeachers}" data-max-t="${a.maxTeachers}">${escapeHtml(a.level)}</option>`
+      ).join('')
+    : `<option value="">-- เลือกกิจกรรมก่อน --</option>`;
+  document.getElementById('activityHint').textContent = '';
+};
+
+Views.prefillRegistrationSelects = function (activity) {
+  const catSel = document.getElementById('regCategorySelect');
+  catSel.value = activity.category;
+  this.onCategoryChangeForReg();
+
+  const nameSel = document.getElementById('regActivityNameSelect');
+  nameSel.value = activity.activityName;
+  this.onActivityNameChangeForReg();
+
+  const levelSel = document.getElementById('regActivitySelect');
+  levelSel.value = activity.activityId;
+  const hint = document.getElementById('activityHint');
+  hint.textContent = `นักเรียน: ${activity.minStudents}-${activity.maxStudents} คน · ครู: ${activity.minTeachers}-${activity.maxTeachers} คน`;
 };
 
 Views.onActivityChangeForReg = function () {
@@ -1439,12 +1548,12 @@ Views.showOfflineQueueInfo = function () {
 Views.downloadRegImportTemplate = function () {
   const wb = XLSX.utils.book_new();
   const studentSheet = XLSX.utils.aoa_to_sheet([
-    ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'ชั้น', 'รหัสนักเรียน'],
-    ['เด็กชาย', 'ตัวอย่าง', 'ใจดี', 'ป.6', '12345']
+    ['คำนำหน้า', 'ชื่อ', 'นามสกุล'],
+    ['เด็กชาย', 'ตัวอย่าง', 'ใจดี']
   ]);
   const teacherSheet = XLSX.utils.aoa_to_sheet([
-    ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'ตำแหน่ง', 'โทรศัพท์'],
-    ['นาย', 'ตัวอย่าง', 'ครูดี', 'ครูผู้ฝึกสอน', '0800000000']
+    ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์'],
+    ['นาย', 'ตัวอย่าง', 'ครูดี', '0800000000']
   ]);
   XLSX.utils.book_append_sheet(wb, studentSheet, 'นักเรียน');
   XLSX.utils.book_append_sheet(wb, teacherSheet, 'ครู');
@@ -1466,7 +1575,7 @@ Views.handleRegImportFile = function (event) {
         this._studentRowSeq = 0;
         rows.forEach(r => {
           if (!r || !r[1]) return;
-          this.addStudentRow({ prefix: r[0] || 'เด็กชาย', firstName: r[1] || '', lastName: r[2] || '', grade: r[3] || '', studentCode: r[4] || '' });
+          this.addStudentRow({ prefix: r[0] || 'เด็กชาย', firstName: r[1] || '', lastName: r[2] || '' });
           importedStudents++;
         });
       }
@@ -1476,7 +1585,7 @@ Views.handleRegImportFile = function (event) {
         this._teacherRowSeq = 0;
         rows.forEach(r => {
           if (!r || !r[1]) return;
-          this.addTeacherRow({ prefix: r[0] || 'นาย', firstName: r[1] || '', lastName: r[2] || '', position: r[3] || 'ครู', phone: r[4] || '' });
+          this.addTeacherRow({ prefix: r[0] || 'นาย', firstName: r[1] || '', lastName: r[2] || '', phone: r[3] || '' });
           importedTeachers++;
         });
       }
@@ -1489,22 +1598,138 @@ Views.handleRegImportFile = function (event) {
   reader.readAsArrayBuffer(file);
 };
 
+/**
+ * ============================================================================
+ * นำเข้าข้อมูลลงทะเบียน "ทั้งโรงเรียน" ในคราวเดียว (ทุกกิจกรรมที่จะสมัคร)
+ * เทมเพลตมี 3 ชีต: "กิจกรรม" (อ้างอิงรหัสกิจกรรม, อ่านอย่างเดียว), "นักเรียน",
+ * "ครู" — ผู้ใช้กรอกรหัสกิจกรรมกำกับแต่ละแถว ระบบจะจัดกลุ่มแล้วสร้าง/ปรับปรุง
+ * ใบสมัครให้ครบทุกกิจกรรมที่ปรากฏ พร้อมตรวจสอบจำนวนขั้นต่ำ/สูงสุดของแต่ละ
+ * กิจกรรมตามฐานข้อมูลจริง (ตรวจซ้ำที่ฝั่งเซิร์ฟเวอร์เสมอ ไม่ใช่แค่ฝั่ง client)
+ * ============================================================================
+ */
+Views.openBulkImportModal = function () {
+  const activities = (this._activityCache || []).filter(a => a.status === 'ACTIVE');
+  const html = `
+    <div class="space-y-4 text-sm">
+      <div class="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 leading-relaxed">
+        <i class="fa-solid fa-circle-info"></i> ใช้สำหรับนำเข้ารายชื่อ "ทุกกิจกรรม" ที่โรงเรียนจะสมัครในคราวเดียว
+        ดาวน์โหลดเทมเพลต กรอกรหัสกิจกรรม (ดูได้จากชีต "กิจกรรม" ในไฟล์เดียวกัน) กำกับทุกแถว แล้วอัปโหลดกลับเข้าระบบ
+        ระบบจะตรวจสอบจำนวนนักเรียน/ครูของแต่ละกิจกรรมให้ตรงตามที่กำหนดไว้โดยอัตโนมัติ
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="Views.downloadBulkImportTemplate()" class="px-3 py-2 bg-white border border-emerald-300 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-50">
+          <i class="fa-solid fa-download"></i> ดาวน์โหลดเทมเพลต (พร้อมรายการกิจกรรมทั้งหมด ${activities.length} รายการ)
+        </button>
+        <label class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer">
+          <i class="fa-solid fa-upload"></i> เลือกไฟล์ที่กรอกแล้ว
+          <input type="file" accept=".xlsx,.xls" class="hidden" onchange="Views.handleBulkImportFile(event)">
+        </label>
+      </div>
+      <div id="bulkImportResult"></div>
+    </div>
+  `;
+  Components.openModal('นำเข้าข้อมูลลงทะเบียนทั้งโรงเรียน', html);
+};
+
+Views.downloadBulkImportTemplate = function () {
+  const activities = (this._activityCache || []).filter(a => a.status === 'ACTIVE');
+  const wb = XLSX.utils.book_new();
+
+  const refRows = [['รหัสกิจกรรม', 'ชื่อกิจกรรม', 'กลุ่มสาระ', 'ระดับชั้น', 'นักเรียนขั้นต่ำ-สูงสุด', 'ครูขั้นต่ำ-สูงสุด']];
+  activities.forEach(a => refRows.push([
+    a.activityCode, a.activityName, a.category, a.level,
+    `${a.minStudents}-${a.maxStudents}`, `${a.minTeachers}-${a.maxTeachers}`
+  ]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(refRows), 'กิจกรรม');
+
+  const studentSheet = XLSX.utils.aoa_to_sheet([
+    ['รหัสกิจกรรม', 'คำนำหน้า', 'ชื่อ', 'นามสกุล'],
+    [activities[0] ? activities[0].activityCode : '', 'เด็กชาย', 'ตัวอย่าง', 'ใจดี']
+  ]);
+  const teacherSheet = XLSX.utils.aoa_to_sheet([
+    ['รหัสกิจกรรม', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์'],
+    [activities[0] ? activities[0].activityCode : '', 'นาย', 'ตัวอย่าง', 'ครูดี', '0800000000']
+  ]);
+  XLSX.utils.book_append_sheet(wb, studentSheet, 'นักเรียน');
+  XLSX.utils.book_append_sheet(wb, teacherSheet, 'ครู');
+  XLSX.writeFile(wb, 'เทมเพลตนำเข้าทั้งโรงเรียน.xlsx');
+};
+
+Views.handleBulkImportFile = function (event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const resultBox = document.getElementById('bulkImportResult');
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const students = [];
+      const teachers = [];
+
+      if (wb.SheetNames.includes('นักเรียน')) {
+        XLSX.utils.sheet_to_json(wb.Sheets['นักเรียน'], { header: 1 }).slice(1).forEach(r => {
+          if (!r || !r[0] || !r[2]) return;
+          students.push({ activityCode: String(r[0]).trim(), prefix: r[1] || 'เด็กชาย', firstName: r[2] || '', lastName: r[3] || '' });
+        });
+      }
+      if (wb.SheetNames.includes('ครู')) {
+        XLSX.utils.sheet_to_json(wb.Sheets['ครู'], { header: 1 }).slice(1).forEach(r => {
+          if (!r || !r[0] || !r[2]) return;
+          teachers.push({ activityCode: String(r[0]).trim(), prefix: r[1] || 'นาย', firstName: r[2] || '', lastName: r[3] || '', phone: r[4] || '' });
+        });
+      }
+
+      if (students.length === 0 && teachers.length === 0) {
+        Swal.fire('ไม่พบข้อมูล', 'ไม่พบรายชื่อในไฟล์ที่อัปโหลด กรุณาตรวจสอบว่าใช้เทมเพลตที่ถูกต้องและกรอกรหัสกิจกรรมครบทุกแถว', 'warning');
+        event.target.value = '';
+        return;
+      }
+
+      resultBox.innerHTML = `<p class="text-xs text-slate-400"><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังนำเข้าและตรวจสอบข้อมูล...</p>`;
+      const res = await API.call('bulkImportRegistrations', { students, teachers });
+
+      resultBox.innerHTML = `
+        <div class="border-t pt-3 mt-2">
+          <p class="text-sm font-semibold text-slate-700 mb-2">ผลการนำเข้า: สำเร็จ ${res.successCount} จาก ${res.total} กิจกรรม</p>
+          <div class="max-h-64 overflow-y-auto space-y-1.5">
+            ${res.details.map(d => `
+              <div class="flex items-start gap-2 p-2 rounded-lg text-xs ${d.success ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}">
+                <i class="fa-solid ${d.success ? 'fa-circle-check' : 'fa-circle-xmark'} mt-0.5"></i>
+                <div>
+                  <div class="font-semibold">${escapeHtml(d.activityCode)}${d.activityName ? ' - ' + escapeHtml(d.activityName) : ''}</div>
+                  <div>${escapeHtml(d.message)} (นักเรียน ${d.studentCount} คน · ครู ${d.teacherCount} คน)</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+
+      if (res.successCount > 0) {
+        Components.toast('success', `นำเข้าสำเร็จ ${res.successCount} กิจกรรม`);
+        this.renderRegistrations();
+      }
+    } catch (err) {
+      resultBox.innerHTML = '';
+      Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถอ่านหรือนำเข้าไฟล์ได้ กรุณาตรวจสอบว่าใช้เทมเพลตที่ถูกต้อง', 'error');
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+};
+
 Views.addStudentRow = function (data) {
   const id = 'srow_' + (this._studentRowSeq++);
   const div = document.createElement('div');
   div.id = id;
   div.className = 'grid grid-cols-12 gap-2 items-center';
   div.innerHTML = `
-    <select class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs s-prefix">
+    <select class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs s-prefix">
       <option ${data && data.prefix === 'เด็กชาย' ? 'selected' : ''}>เด็กชาย</option>
       <option ${data && data.prefix === 'เด็กหญิง' ? 'selected' : ''}>เด็กหญิง</option>
       <option ${data && data.prefix === 'นาย' ? 'selected' : ''}>นาย</option>
       <option ${data && data.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
     </select>
-    <input placeholder="ชื่อ" value="${escapeHtml(data ? data.firstName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs s-fname" required>
-    <input placeholder="สกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs s-lname" required>
-    <input placeholder="ชั้น" value="${escapeHtml(data ? data.grade || '' : '')}" class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs s-grade">
-    <input placeholder="รหัส นร." value="${escapeHtml(data ? data.studentCode || '' : '')}" class="col-span-1 p-2 border border-slate-300 rounded-lg text-xs s-code">
+    <input placeholder="ชื่อ" value="${escapeHtml(data ? data.firstName || '' : '')}" class="col-span-4 p-2 border border-slate-300 rounded-lg text-xs s-fname" required>
+    <input placeholder="นามสกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-4 p-2 border border-slate-300 rounded-lg text-xs s-lname" required>
     <button type="button" onclick="document.getElementById('${id}').remove()" class="col-span-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
   `;
   document.getElementById('studentRows').appendChild(div);
@@ -1522,9 +1747,8 @@ Views.addTeacherRow = function (data) {
       <option ${data && data.prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
     </select>
     <input placeholder="ชื่อ" value="${escapeHtml(data ? data.firstName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-fname" required>
-    <input placeholder="สกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-lname" required>
-    <input placeholder="ตำแหน่ง" value="${escapeHtml(data ? data.position || 'ครู' : 'ครู')}" class="col-span-2 p-2 border border-slate-300 rounded-lg text-xs t-position">
-    <input placeholder="โทรศัพท์" value="${escapeHtml(data ? data.phone || '' : '')}" class="col-span-1 p-2 border border-slate-300 rounded-lg text-xs t-phone">
+    <input placeholder="นามสกุล" value="${escapeHtml(data ? data.lastName || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-lname" required>
+    <input placeholder="เบอร์โทรศัพท์" value="${escapeHtml(data ? data.phone || '' : '')}" class="col-span-3 p-2 border border-slate-300 rounded-lg text-xs t-phone">
     <button type="button" onclick="document.getElementById('${id}').remove()" class="col-span-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
   `;
   document.getElementById('teacherRows').appendChild(div);
@@ -1537,12 +1761,11 @@ Views.submitRegistrationForm = async function (event, regId) {
 
   const students = Array.from(document.getElementById('studentRows').children).map(row => ({
     prefix: row.querySelector('.s-prefix').value, firstName: row.querySelector('.s-fname').value,
-    lastName: row.querySelector('.s-lname').value, grade: row.querySelector('.s-grade').value,
-    studentCode: row.querySelector('.s-code').value
+    lastName: row.querySelector('.s-lname').value
   }));
   const teachers = Array.from(document.getElementById('teacherRows').children).map(row => ({
     prefix: row.querySelector('.t-prefix').value, firstName: row.querySelector('.t-fname').value,
-    lastName: row.querySelector('.t-lname').value, position: row.querySelector('.t-position').value,
+    lastName: row.querySelector('.t-lname').value, position: 'ครูผู้ฝึกสอน',
     phone: row.querySelector('.t-phone').value
   }));
 
@@ -2348,7 +2571,52 @@ Views.paintSettings = function () {
   const container = document.getElementById('mainContent');
   const rows = this._settingsCache;
   const backups = this._backupCache || [];
+  const getVal = (key) => { const s = rows.find(r => r.Key === key); return s ? s.Value : ''; };
+  const regStatus = getVal('REGISTRATION_STATUS') || 'OPEN';
+  const certStatus = getVal('CERTIFICATE_STATUS') || 'OPEN';
+  const regStart = getVal('REGISTRATION_START_DATE');
+  const regEnd = getVal('REGISTRATION_END_DATE');
+
   let html = `
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+      <h3 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-calendar-check text-orange-500"></i> เปิด-ปิดการรับสมัคร / ลงทะเบียน</h3>
+      <p class="text-xs text-slate-400 mb-4">กำหนดช่วงวันที่เปิดรับสมัครได้ล่วงหน้า ระบบจะปิดรับสมัครอัตโนมัติเมื่อพ้นกำหนด หรือจะใช้สวิตช์ปิดทันทีก็ได้โดยไม่ต้องรอวันที่</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">สถานะรับสมัคร (สวิตช์หลัก)</label>
+          <select id="setval_REGISTRATION_STATUS" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+            <option value="OPEN" ${regStatus === 'OPEN' ? 'selected' : ''}>เปิดรับสมัคร</option>
+            <option value="CLOSED" ${regStatus === 'CLOSED' ? 'selected' : ''}>ปิดรับสมัคร (ปิดทันที)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">วันที่เปิดรับสมัคร</label>
+          <input type="date" id="setval_REGISTRATION_START_DATE" value="${escapeHtml(regStart)}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">วันที่ปิดรับสมัคร</label>
+          <input type="date" id="setval_REGISTRATION_END_DATE" value="${escapeHtml(regEnd)}" class="w-full p-2.5 border border-slate-300 rounded-xl text-sm">
+        </div>
+      </div>
+      <button onclick="Views.saveRegistrationWindowSettings()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่ารับสมัคร
+      </button>
+
+      <div class="border-t border-slate-100 mt-5 pt-5">
+        <h3 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-certificate text-amber-500"></i> ระบบเกียรติบัตร</h3>
+        <p class="text-xs text-slate-400 mb-3">ปิดระบบชั่วคราวได้ (เช่น ระหว่างตรวจสอบผลก่อนประกาศจริง) — โรงเรียนจะดู/พิมพ์เกียรติบัตรไม่ได้ แต่ผู้ดูแลระบบยังเข้าถึงได้เสมอ</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="setval_CERTIFICATE_STATUS" class="p-2.5 border border-slate-300 rounded-xl text-sm">
+            <option value="OPEN" ${certStatus === 'OPEN' ? 'selected' : ''}>เปิดใช้งานระบบเกียรติบัตร</option>
+            <option value="CLOSED" ${certStatus === 'CLOSED' ? 'selected' : ''}>ปิดใช้งานระบบเกียรติบัตร</option>
+          </select>
+          <button onclick="Views.saveOneSetting('CERTIFICATE_STATUS')" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-md">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึก
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h3 class="font-bold text-slate-800">ติดตั้ง / ตรวจสอบโครงสร้างฐานข้อมูล</h3>
@@ -2410,6 +2678,23 @@ Views.runManualBackup = async function () {
   try {
     await API.call('runManualBackup');
     Components.toast('success', 'สำรองข้อมูลสำเร็จ');
+    this.renderSettings();
+  } catch (e) {}
+};
+
+Views.saveRegistrationWindowSettings = async function () {
+  try {
+    const status = document.getElementById('setval_REGISTRATION_STATUS').value;
+    const start = document.getElementById('setval_REGISTRATION_START_DATE').value;
+    const end = document.getElementById('setval_REGISTRATION_END_DATE').value;
+    if (start && end && start > end) {
+      Swal.fire('แจ้งเตือน', 'วันที่เปิดรับสมัครต้องไม่มากกว่าวันที่ปิดรับสมัคร', 'warning');
+      return;
+    }
+    await API.call('updateSetting', { key: 'REGISTRATION_STATUS', value: status });
+    await API.call('updateSetting', { key: 'REGISTRATION_START_DATE', value: start });
+    await API.call('updateSetting', { key: 'REGISTRATION_END_DATE', value: end });
+    Components.toast('success', 'บันทึกการตั้งค่ารับสมัครสำเร็จ');
     this.renderSettings();
   } catch (e) {}
 };
